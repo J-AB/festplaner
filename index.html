@@ -9,13 +9,13 @@
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   body { background: var(--bg); color: var(--text); font-family: -apple-system, sans-serif; display: flex; height: 100dvh; overflow: hidden; }
 
-  /* Sidebar & Layout */
+  /* Sidebar */
   #sidebar { width: 280px; background: #0a0a15; border-right: 1px solid #2a2a4a; display: flex; flex-direction: column; transition: transform 0.3s ease; position: absolute; top: 0; bottom: 0; left: 0; z-index: 2000; }
   .sidebar-hidden { transform: translateX(-100%); }
   #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; z-index: 1500; }
   #content { flex: 1; display: flex; flex-direction: column; width: 100%; min-width: 0; }
 
-  /* Header & Dual Filter Bar */
+  /* Header & Filter */
   #header { background: linear-gradient(135deg,#1a1a2e, #0f3460); padding: 15px; border-bottom: 1px solid #2a2a5a; }
   .top-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
   
@@ -23,11 +23,9 @@
   .filter-row { display: flex; gap: 8px; padding: 8px 12px; overflow-x: auto; scrollbar-width: none; }
   .filter-row::-webkit-scrollbar { display: none; }
 
-  /* Icons Filter Style */
-  .icon-filter { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 20px; border-radius: 10px; flex-shrink: 0; background: #1a1a30; border: 1px solid #3a3a6a; color: #fff; cursor: pointer; }
-  .icon-filter.active { border-color: var(--accent); background: var(--panel); box-shadow: 0 0 10px rgba(200,164,90,0.2); }
-
-  /* User Filter Style */
+  .icon-filter { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 20px; border-radius: 10px; flex-shrink: 0; background: #1a1a30; border: 1px solid #3a3a6a; cursor: pointer; }
+  .icon-filter.active { border-color: var(--accent); background: var(--panel); }
+  
   .user-filter { padding: 6px 14px; border-radius: 20px; background: #1a1a30; border: 1px solid #3a3a6a; font-size: 12px; color: #fff; cursor: pointer; white-space: nowrap; }
   .user-filter.active { background: var(--accent); color: #000; border-color: var(--accent); }
 
@@ -48,11 +46,13 @@
   .task-info { flex: 1; min-width: 0; }
   .cd-badge { font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 4px; background: #3a3a6a; color: #fff; }
 
-  /* Modals */
-  .btn { padding: 10px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; }
+  /* UI Elements */
+  .btn { padding: 10px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; font-size: 13px; }
   .btn-primary { background: var(--accent); color: #000; }
   .btn-ghost { background: #1a1a30; color: #fff; border: 1px solid #3a3a6a; }
-  .form-input { width: 100%; background: #0d0d1a; border: 1px solid #3a3a6a; border-radius: 10px; color: #fff; padding: 12px; margin-bottom: 12px; }
+  .btn-danger { background: var(--danger); color: #fff; }
+  .form-input { width: 100%; background: #0d0d1a; border: 1px solid #3a3a6a; border-radius: 10px; color: #fff; padding: 12px; margin-bottom: 12px; font-size: 16px; }
+  
   #login-screen { position: fixed; inset: 0; background: var(--bg); z-index: 4000; display: flex; align-items: center; justify-content: center; padding: 20px; }
   .modal-box { background: #12121f; border: 1px solid #3a3a6a; border-radius: 20px; padding: 25px; width: 100%; max-width: 450px; max-height: 85vh; overflow-y: auto; }
 
@@ -66,10 +66,9 @@
 <div id="login-screen">
   <div class="modal-box" style="max-width: 350px;">
     <h2 style="text-align:center; margin-bottom:20px">🎪 Vereins-Login</h2>
-    <input type="text" id="login-user" class="form-input" placeholder="Benutzername" onkeypress="if(event.key==='Enter') document.getElementById('login-pass').focus()">
-    <input type="password" id="login-pass" class="form-input" placeholder="Passwort" onkeypress="if(event.key==='Enter') handleLogin()">
+    <input type="text" id="login-user" class="form-input" placeholder="Benutzername">
+    <input type="password" id="login-pass" class="form-input" placeholder="Passwort">
     <button class="btn btn-primary" style="width:100%" onclick="handleLogin()">Einloggen</button>
-    <p id="login-msg" style="color:var(--danger); margin-top:15px; text-align:center; font-size:13px"></p>
   </div>
 </div>
 
@@ -115,12 +114,15 @@
 
 <div id="event-edit-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:3000; align-items:center; justify-content:center; padding:20px">
   <div class="modal-box">
-    <h3>Fest-Einstellungen</h3>
-    <label>Name</label><input type="text" id="ev-edit-name" class="form-input">
-    <label>Datum</label><input type="date" id="ev-edit-date" class="form-input">
+    <h3>Fest-Details bearbeiten</h3>
+    <label>Name des Festes</label>
+    <input type="text" id="ev-edit-name" class="form-input">
+    <label>Datum</label>
+    <input type="date" id="ev-edit-date" class="form-input">
+    <button class="btn btn-ghost" style="width:100%; margin-bottom:20px; color:var(--accent)" onclick="duplicateEvent()">📋 Fest duplizieren</button>
     <div style="display:flex; gap:10px">
       <button class="btn btn-danger" onclick="deleteEvent()">🗑️ Löschen</button>
-      <button class="btn btn-ghost" style="flex:1" onclick="this.closest('#event-edit-modal').style.display='none'">Abbr.</button>
+      <button class="btn btn-ghost" style="flex:1" onclick="document.getElementById('event-edit-modal').style.display='none'">Abbr.</button>
       <button class="btn btn-primary" style="flex:1" onclick="saveEventEdit()">Speichern</button>
     </div>
   </div>
@@ -147,6 +149,16 @@
   </div>
 </div>
 
+<div id="event-modal-ui" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:3000; align-items:center; justify-content:center; padding:20px">
+  <div class="modal-box">
+    <h3>Neues Fest</h3>
+    <input type="text" id="ev-name" class="form-input" placeholder="Name">
+    <input type="date" id="ev-date" class="form-input">
+    <button class="btn btn-primary" style="width:100%" onclick="saveNewEvent()">Anlegen</button>
+    <button class="btn btn-ghost" style="width:100%; margin-top:10px" onclick="document.getElementById('event-modal-ui').style.display='none'">Abbrechen</button>
+  </div>
+</div>
+
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 
@@ -161,29 +173,23 @@
   const db = firebase.database();
 
   const CATEGORIES = {
-    zelt:        { label: "Zelt", icon: "⛺", color: "#c8a45a" },
-    behoerde:    { label: "Amt",  icon: "🏛️", color: "#7ab8d4" },
-    programm:    { label: "Musik", icon: "🎵", color: "#9b7ec8" },
-    presse:      { label: "Presse", icon: "📰", color: "#6bbf8e" },
-    lieferanten: { label: "Gastro", icon: "🍺", color: "#e07b5a" },
-    finanzen:    { label: "Geld",   icon: "💰", color: "#d4a847" },
-    sonstiges:   { label: "Sonst.", icon: "⚙️", color: "#888888" }
+    zelt:        { label: "Locationz",           color: "#c8a45a", icon: "⛺" },
+    behoerde:    { label: "Amt",   color: "#7ab8d4", icon: "🏛️" },
+    programm:    { label: "Programm",         color: "#9b7ec8", icon: "🎵" },
+    presse:      { label: "Werbung",      color: "#6bbf8e", icon: "📰" },
+    lieferanten: { label: "Bestellungen",  color: "#e07b5a", icon: "🍺" },
+    finanzen:    { label: "Finanzen",            color: "#d4a847", icon: "💰" },
+    sonstiges:   { label: "Sonstiges",                  color: "#888888", icon: "⚙️" }
   };
 
-  let state = { 
-    events: {}, users: {}, currentUser: null, 
-    currentEventId: null, 
-    catFilter: 'all', 
-    userFilter: 'all' 
-  };
+  let state = { events: {}, users: {}, currentUser: null, currentEventId: null, catFilter: 'all', userFilter: 'all' };
+  let activeTaskId = null;
 
   db.ref('festplaner_v3').on('value', snap => {
     const data = snap.val();
-    if(data) {
-      state.events = data.events || {};
-      state.users = data.users || {};
-      render();
-    }
+    state.events = data?.events || {};
+    state.users = data?.users || {};
+    render();
   });
 
   function handleLogin() {
@@ -192,13 +198,13 @@
     const user = state.users[u] || (u === 'admin' && p === '1234' ? {name:'admin', pass:'1234', role:0} : null);
     if(user && user.pass === p) {
       state.currentUser = user;
-      state.userFilter = user.name; // Standardmäßig eigene Aufgaben zeigen
+      state.userFilter = user.name;
       document.getElementById("login-screen").style.display = "none";
       if(user.role == 0) document.getElementById("admin-tools").style.display = "block";
       document.getElementById("user-info").innerHTML = `User: <b>${user.name}</b>`;
       document.getElementById("add-btn").style.display = "block";
       render();
-    } else { document.getElementById("login-msg").textContent = "Falsche Daten!"; }
+    }
   }
 
   function render() {
@@ -216,60 +222,141 @@
     document.getElementById("current-event-name").textContent = ev.name;
     document.getElementById("admin-ev-edit").style.display = (state.currentUser.role == 0) ? "block" : "none";
 
-    // 1. Kategorien (Nur Icons)
+    // Compact Cat Filter
     let catHtml = `<div class="icon-filter ${state.catFilter==='all'?'active':''}" onclick="state.catFilter='all';render()">ALL</div>`;
     Object.entries(CATEGORIES).forEach(([key, cat]) => {
-      catHtml += `<div class="icon-filter ${state.catFilter===key?'active':''}" onclick="state.catFilter='${key}';render()" title="${cat.label}">${cat.icon}</div>`;
+      catHtml += `<div class="icon-filter ${state.catFilter===key?'active':''}" onclick="state.catFilter='${key}';render()">${cat.icon}</div>`;
     });
     document.getElementById("cat-filters").innerHTML = catHtml;
 
-    // 2. Personen Filter
+    // User Filter
     const activeUsers = [...new Set((ev.tasks || []).map(t => t.assignee).filter(Boolean))];
-    let userHtml = `<div class="user-filter ${state.userFilter==='all'?'active':''}" onclick="state.userFilter='all';render()">Alle Personen</div>`;
-    userHtml += `<div class="user-filter ${state.userFilter===state.currentUser.name?'active':''}" onclick="state.userFilter='${state.currentUser.name}';render()">✨ Meine Aufgaben</div>`;
-    activeUsers.forEach(u => {
-      if(u !== state.currentUser.name) {
-        userHtml += `<div class="user-filter ${state.userFilter===u?'active':''}" onclick="state.userFilter='${u}';render()">${u}</div>`;
-      }
-    });
+    let userHtml = `<div class="user-filter ${state.userFilter==='all'?'active':''}" onclick="state.userFilter='all';render()">Alle</div>`;
+    userHtml += `<div class="user-filter ${state.userFilter===state.currentUser.name?'active':''}" onclick="state.userFilter='${state.currentUser.name}';render()">✨ Meine</div>`;
+    activeUsers.forEach(u => { if(u !== state.currentUser.name) userHtml += `<div class="user-filter ${state.userFilter===u?'active':''}" onclick="state.userFilter='${u}';render()">${u}</div>`; });
     document.getElementById("user-filters").innerHTML = userHtml;
 
-    // Task Logic
     let tasks = ev.tasks || [];
     if(state.catFilter !== 'all') tasks = tasks.filter(t => t.category === state.catFilter);
     if(state.userFilter !== 'all') tasks = tasks.filter(t => t.assignee === state.userFilter);
 
-    // Stats & List (same as before)
-    const done = tasks.filter(t => t.done).length;
-    document.getElementById("stat-progress").textContent = (tasks.length ? Math.round(done/tasks.length*100) : 0) + "%";
+    // Stats
+    document.getElementById("stat-progress").textContent = (tasks.length ? Math.round(tasks.filter(t=>t.done).length/tasks.length*100) : 0) + "%";
     if(state.currentUser.role <= 1) document.getElementById("stat-budget").textContent = tasks.reduce((sum, t) => sum + (parseFloat(t.costI) || 0), 0).toLocaleString() + " €";
     const dLeft = ev.date ? Math.ceil((new Date(ev.date) - new Date()) / 86400000) : null;
-    document.getElementById("stat-days").textContent = (dLeft !== null && !isNaN(dLeft)) ? dLeft : "-";
+    document.getElementById("stat-days").textContent = dLeft || "-";
 
+    // Task Cards
     document.getElementById("task-list").innerHTML = tasks.sort((a,b) => a.done - b.done).map(t => {
-      let diff = 999;
-      if(ev.date) {
-        const dl = new Date(new Date(ev.date).getTime() - (t.weeksBefore || 0) * 7 * 86400000);
-        diff = Math.ceil((dl - new Date()) / 86400000);
-      }
+      let diff = 999; if(ev.date) { const dl = new Date(new Date(ev.date).getTime() - (t.weeksBefore || 0) * 7 * 86400000); diff = Math.ceil((dl - new Date()) / 86400000); }
       const cat = CATEGORIES[t.category] || CATEGORIES.sonstiges;
       return `
         <div class="task-card ${t.done?'status-done':(diff<0?'status-overdue':(diff<=7?'status-urgent':''))}">
           <input type="checkbox" ${t.done?'checked':''} onchange="toggleTask(${t.id})" style="width:22px; height:22px">
           <div class="cat-box" style="background:${cat.color}22; color:${cat.color}">${cat.icon}</div>
           <div class="task-info" onclick="openEdit(${t.id})">
-            <div style="font-weight:bold; font-size:14px">${t.title}</div>
-            <div style="font-size:11px; color:#7070a0">${t.assignee || 'Offen'} • <span class="cd-badge ${diff<0?'cd-overdue':''}">${t.done?'Erledigt':(diff<0?'Überfällig!':'Noch '+diff+' Tg.')}</span></div>
+            <div style="font-weight:bold">${t.title}</div>
+            <div style="font-size:11px; color:#7070a0">${t.assignee || 'Offen'} • <span class="cd-badge">${t.done?'Erledigt':(diff<0?'Überfällig!':'Noch '+diff+' Tg.')}</span></div>
           </div>
           <span onclick="openEdit(${t.id})">✏️</span>
-        </div>
-      `;
+        </div>`;
     }).join('');
   }
 
-  // Hilfsfunktionen (identisch zu vorher, nur für Kontext hier)
-  function selectEvent(id) { state.currentEventId = id; render(); toggleMenu(); }
-  function toggleMenu() { document.getElementById("sidebar").classList.toggle("sidebar-hidden"); document.getElementById("overlay").style.display = document.getElementById("sidebar").classList.contains("sidebar-hidden") ? "none" : "block"; }
+  // --- EVENT ACTIONS ---
+  function openEventEdit() {
+    const ev = state.events[state.currentEventId];
+    document.getElementById("ev-edit-name").value = ev.name;
+    document.getElementById("ev-edit-date").value = ev.date || "";
+    document.getElementById("event-edit-modal").style.display = "flex";
+  }
+
+  function saveEventEdit() {
+    const name = document.getElementById("ev-edit-name").value;
+    const date = document.getElementById("ev-edit-date").value;
+    if(!name) return;
+    db.ref('festplaner_v3/events/' + state.currentEventId).update({ name, date })
+      .then(() => document.getElementById("event-edit-modal").style.display = "none");
+  }
+
+  function duplicateEvent() {
+    const orig = state.events[state.currentEventId];
+    const newName = prompt("Name der Kopie:", orig.name + " (Kopie)");
+    if(!newName) return;
+    const newId = "ev_" + Date.now();
+    const tasks = (orig.tasks || []).map(t => ({ ...t, done: false, costI: 0 }));
+    db.ref('festplaner_v3/events/' + newId).set({ name: newName, date: orig.date || "", tasks })
+      .then(() => { alert("Kopiert!"); document.getElementById("event-edit-modal").style.display = "none"; });
+  }
+
+  function deleteEvent() {
+    if(confirm("Ganzes Fest löschen?")) {
+      db.ref('festplaner_v3/events/' + state.currentEventId).remove();
+      state.currentEventId = null;
+      document.getElementById("event-edit-modal").style.display = "none";
+    }
+  }
+
+  // --- TASK ACTIONS ---
+  function openEdit(id) {
+    activeTaskId = id;
+    const t = state.events[state.currentEventId].tasks.find(x => x.id === id);
+    document.getElementById("ed-title").value = t.title || "";
+    document.getElementById("ed-weeks").value = t.weeksBefore || 0;
+    document.getElementById("ed-cost-i").value = t.costI || 0;
+    document.getElementById("ed-notes").value = t.notes || "";
+    document.getElementById("ed-cat").innerHTML = Object.entries(CATEGORIES).map(([k,c]) => `<option value="${k}" ${t.category===k?'selected':''}>${c.icon} ${c.label}</option>`).join('');
+    document.getElementById("ed-assignee").innerHTML = '<option value="">Offen</option>' + Object.values(state.users).map(u => `<option value="${u.name}" ${t.assignee===u.name?'selected':''}>${u.name}</option>`).join('');
+    document.getElementById("edit-modal").style.display = "flex";
+  }
+
+  function saveEdit() {
+    const tasks = state.events[state.currentEventId].tasks;
+    const idx = tasks.findIndex(x => x.id === activeTaskId);
+    tasks[idx].title = document.getElementById("ed-title").value;
+    tasks[idx].category = document.getElementById("ed-cat").value;
+    tasks[idx].weeksBefore = parseInt(document.getElementById("ed-weeks").value) || 0;
+    tasks[idx].assignee = document.getElementById("ed-assignee").value;
+    tasks[idx].notes = document.getElementById("ed-notes").value;
+    tasks[idx].costI = document.getElementById("ed-cost-i").value;
+    db.ref('festplaner_v3/events/' + state.currentEventId + '/tasks').set(tasks);
+    document.getElementById("edit-modal").style.display = "none";
+  }
+
   function toggleTask(id) {
     const tasks = state.events[state.currentEventId].tasks;
-    const idx = tasks.findIndex
+    const idx = tasks.findIndex(x => x.id === id);
+    tasks[idx].done = !tasks[idx].done;
+    db.ref('festplaner_v3/events/' + state.currentEventId + '/tasks').set(tasks);
+  }
+
+  function addTask() {
+    const tasks = state.events[state.currentEventId].tasks || [];
+    const id = Date.now();
+    tasks.push({ id, title: "Neue Aufgabe", category: "sonstiges", done: false, weeksBefore: 1, assignee: state.currentUser.name });
+    db.ref('festplaner_v3/events/' + state.currentEventId + '/tasks').set(tasks);
+    openEdit(id);
+  }
+
+  function deleteTask() {
+    if(confirm("Aufgabe löschen?")) {
+      const tasks = state.events[state.currentEventId].tasks.filter(x => x.id !== activeTaskId);
+      db.ref('festplaner_v3/events/' + state.currentEventId + '/tasks').set(tasks);
+      document.getElementById("edit-modal").style.display = "none";
+    }
+  }
+
+  // --- GLOBALS ---
+  function selectEvent(id) { state.currentEventId = id; render(); toggleMenu(); }
+  function toggleMenu() { document.getElementById("sidebar").classList.toggle("sidebar-hidden"); document.getElementById("overlay").style.display = document.getElementById("sidebar").classList.contains("sidebar-hidden") ? "none" : "block"; }
+  function saveNewEvent() {
+    const name = document.getElementById("ev-name").value;
+    const date = document.getElementById("ev-date").value;
+    if(!name) return;
+    db.ref('festplaner_v3/events/' + "ev_" + Date.now()).set({ name, date, tasks: [] });
+    document.getElementById("event-modal-ui").style.display = "none";
+  }
+  function openEventModal() { document.getElementById("event-modal-ui").style.display = "flex"; }
+</script>
+</body>
+</html>
