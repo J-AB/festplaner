@@ -306,37 +306,46 @@
   }
 
   // --- CSV IMPORT LOGIK ---
-  function importCSV() {
-    const fileInput = document.getElementById('csv-file');
-    if(!fileInput.files.length) return alert("Bitte Datei wählen");
+function importCSV() {
+  const fileInput = document.getElementById('csv-file');
+  if(!fileInput.files.length) return alert("Bitte Datei wählen");
+  
+  const file = fileInput.files[0];
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const text = e.target.result;
+    const lines = text.split(/\r?\n/); // Trennt Zeilen (Windows & Mac sicher)
+    const tasks = state.events[state.currentEventId].tasks || [];
     
-    const file = fileInput.files[0];
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        const text = e.target.result;
-        const lines = text.split('\n');
-        const tasks = state.events[state.currentEventId].tasks || [];
-        
-        lines.forEach(line => {
-            const cols = line.split(',').map(c => c.trim());
-            if(cols.length >= 1 && cols[0] !== "") {
-                tasks.push({
-                    id: Date.now() + Math.random(),
-                    title: cols[0],
-                    category: (CATEGORIES[cols[1]?.toLowerCase()]) ? cols[1].toLowerCase() : "sonstiges",
-                    weeksBefore: parseInt(cols[2]) || 1,
-                    notes: cols[3] || "",
-                    done: false,
-                    assignee: ""
-                });
-            }
+    lines.forEach((line, index) => {
+      if(line.trim() === "") return;
+
+      // Erkennt automatisch , oder ;
+      const delimiter = line.includes(';') ? ';' : ',';
+      const cols = line.split(delimiter).map(c => c.trim().replace(/^"|"$/g, ''));
+      
+      // Überspringe Header-Zeile, falls "Titel" drinsteht
+      if(index === 0 && cols[0].toLowerCase().includes("titel")) return;
+
+      if(cols.length >= 1 && cols[0] !== "") {
+        tasks.push({
+          id: Date.now() + Math.random(),
+          title: cols[0],
+          category: (CATEGORIES[cols[1]?.toLowerCase()]) ? cols[1].toLowerCase() : "sonstiges",
+          weeksBefore: parseInt(cols[2]) || 1,
+          notes: cols[3] || "",
+          done: false,
+          assignee: ""
         });
-        db.ref('festplaner_v3/events/' + state.currentEventId + '/tasks').set(tasks);
-        alert("Import abgeschlossen!");
-        document.getElementById('event-edit-modal').style.display = 'none';
-    };
-    reader.readAsText(file);
-  }
+      }
+    });
+    
+    db.ref('festplaner_v3/events/' + state.currentEventId + '/tasks').set(tasks);
+    alert("Import abgeschlossen!");
+    document.getElementById('event-edit-modal').style.display = 'none';
+  };
+  reader.readAsText(file);
+}
 
   // (Die restlichen Standard-Funktionen bleiben gleich...)
   function selectEvent(id) { state.currentEventId = id; render(); if(window.innerWidth < 1024) toggleMenu(); }
