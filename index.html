@@ -3,115 +3,126 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🎪 Vereinsfest-Planer Pro</title>
+<title>🎪 Vereins-Manager Pro</title>
 <style>
+  :root { --bg: #0d0d14; --panel: #16213e; --accent: #c8a45a; --text: #e8e8f0; --danger: #ff4444; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #0d0d14; color: #e8e8f0; font-family: -apple-system, Segoe UI, Roboto, sans-serif; min-height: 100vh; }
-  
-  /* Login Screen */
-  #login-screen { position: fixed; inset: 0; background: #0d0d14; z-index: 1000; display: flex; align-items: center; justify-content: center; flex-direction: column; }
-  .login-box { background: #1a1a2e; padding: 30px; border-radius: 20px; border: 1px solid #3a3a6a; text-align: center; width: 90%; max-width: 350px; }
-  
-  /* Header */
-  #header { background: linear-gradient(135deg,#1a1a2e,#16213e 50%,#0f3460); border-bottom: 1px solid #2a2a5a; padding: 20px; position: sticky; top: 0; z-index: 50; }
-  #header-inner { max-width: 900px; margin: 0 auto; }
-  .header-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
-  h1 { font-size: 22px; color: #e8e8ff; }
-  .festdate { margin-top: 5px; font-size: 13px; color: #9090c0; }
-  .festdate strong { color: #c8a45a; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, sans-serif; display: flex; height: 100vh; overflow: hidden; }
 
-  /* Progress */
-  .progress-wrap { margin-top: 15px; }
-  .progress-label { display: flex; justify-content: space-between; font-size: 11px; color: #7070a0; margin-bottom: 5px; }
-  .progress-bar-bg { background: #1a1a30; border-radius: 4px; height: 8px; overflow: hidden; }
-  .progress-bar-fill { height: 100%; background: linear-gradient(90deg,#4a7a9b,#c8a45a); transition: width .5s ease; }
+  /* Sidebar / Hamburger */
+  #sidebar { width: 280px; background: #0a0a15; border-right: 1px solid #2a2a4a; display: flex; flex-direction: column; transition: transform 0.3s ease; z-index: 1000; }
+  .sidebar-hidden { transform: translateX(-280px); position: absolute; height: 100%; }
+  .sidebar-header { padding: 20px; border-bottom: 1px solid #2a2a4a; display: flex; justify-content: space-between; align-items: center; }
+  .event-list { flex: 1; overflow-y: auto; padding: 10px; }
+  .event-item { padding: 12px; margin-bottom: 8px; border-radius: 8px; cursor: pointer; background: #1a1a30; border: 1px solid transparent; transition: 0.2s; }
+  .event-item:hover { background: #252545; }
+  .event-item.active { border-color: var(--accent); background: #252545; }
+  .event-item-name { font-weight: bold; display: block; }
+  .event-item-date { font-size: 11px; color: #7070a0; }
 
-  /* UI Elements */
-  #main { max-width: 900px; margin: 0 auto; padding: 20px; }
-  .filter-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
-  .filter-group { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-  
-  .filter-btn, select.filter-select { padding: 8px 12px; border-radius: 10px; font-size: 13px; cursor: pointer; border: 1px solid #2a2a4a; background: #1a1a30; color: #fff; }
-  .filter-btn.active { border-color: #c8a45a; background: #3a3a6a; }
-  
-  .btn-add { padding: 12px 24px; border-radius: 25px; font-size: 14px; font-weight: bold; cursor: pointer; background: #2a4a2a; border: 1px solid #4a8a4a; color: #a0e0a0; }
+  /* Main Content */
+  #content { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+  #header { background: linear-gradient(135deg,#1a1a2e, #0f3460); padding: 15px 20px; border-bottom: 1px solid #2a2a5a; }
+  .top-bar { display: flex; align-items: center; gap: 15px; margin-bottom: 10px; }
+  #menu-toggle { font-size: 24px; background: none; border: none; color: white; cursor: pointer; }
 
-  /* Task Cards & Dynamic Colors */
-  #task-list { display: flex; flex-direction: column; gap: 12px; }
-  .task-card { background: #0f0f20; border-radius: 12px; padding: 16px; border: 1px solid #252545; border-left: 5px solid #3a3a6a; position: relative; }
-  
-  .status-overdue { border-left-color: #ff4444; background: #251515; } 
-  .status-urgent { border-left-color: #ffbb33; background: #252015; }  
-  .status-done { opacity: 0.5; border-left-color: #00c851; background: #0a0a10; } 
+  /* Task Grid */
+  #main-scroll { flex: 1; overflow-y: auto; padding: 20px; }
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px; }
+  .stat-card { background: #1a1a30; padding: 15px; border-radius: 12px; border: 1px solid #2a2a4a; }
+  .stat-val { display: block; font-size: 18px; font-weight: bold; color: var(--accent); }
+  .stat-lbl { font-size: 11px; color: #7070a0; text-transform: uppercase; }
 
-  .task-main { display: flex; gap: 15px; }
-  .task-info { flex: 1; }
-  .task-title { font-size: 17px; margin-bottom: 4px; font-weight: 500; }
-  .days-label { font-size: 11px; font-weight: bold; text-transform: uppercase; margin-bottom: 4px; display: block; }
+  /* Cards */
+  .task-card { background: #0f0f20; border-radius: 12px; padding: 15px; border: 1px solid #252545; border-left: 5px solid #3a3a6a; margin-bottom: 12px; }
+  .status-overdue { border-left-color: var(--danger); background: #251515; }
+  .status-urgent { border-left-color: #ffbb33; background: #252015; }
+  .status-done { opacity: 0.5; border-left-color: #00c851; }
   
-  .assignee-badge { color: #c8a45a; font-weight: bold; border: 1px solid #c8a45a44; padding: 2px 8px; border-radius: 6px; display: inline-block; margin-top: 8px; font-size: 12px; }
+  .money-badge { font-size: 11px; background: #2a4a2a; color: #a0e0a0; padding: 2px 6px; border-radius: 4px; margin-left: 10px; }
 
   /* Modals */
-  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: none; align-items: center; justify-content: center; z-index: 100; padding: 15px; }
-  .modal-box { background: #12121f; border: 1px solid #3a3a6a; border-radius: 16px; padding: 24px; width: 100%; max-width: 450px; }
-  .form-input { width: 100%; background: #0d0d1a; border: 1px solid #3a3a6a; border-radius: 8px; color: #fff; padding: 12px; margin-bottom: 15px; font-size: 16px; }
-  label { font-size: 11px; color: #7070a0; margin-bottom: 5px; display: block; text-transform: uppercase; }
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; z-index: 2000; padding: 20px; }
+  .modal-box { background: #12121f; border: 1px solid #3a3a6a; border-radius: 16px; padding: 25px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
+  .form-group { margin-bottom: 15px; }
+  .form-input { width: 100%; background: #0d0d1a; border: 1px solid #3a3a6a; border-radius: 8px; color: #fff; padding: 12px; font-size: 16px; }
+  label { font-size: 11px; color: #7070a0; margin-bottom: 5px; display: block; }
 
-  @media (max-width: 600px) { .filter-row { flex-direction: column; align-items: stretch; } .btn-add { width: 100%; order: -1; } }
+  /* Buttons */
+  .btn { padding: 10px 18px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; }
+  .btn-primary { background: var(--accent); color: #000; }
+  .btn-ghost { background: #1a1a30; color: #fff; border: 1px solid #3a3a6a; }
+  .btn-danger { background: #4a1a1a; color: #ff8888; }
+  
+  #login-screen { position: fixed; inset: 0; background: var(--bg); z-index: 3000; display: flex; align-items: center; justify-content: center; }
+
+  @media (max-width: 768px) { #sidebar { position: absolute; } .sidebar-hidden { transform: translateX(-100%); } }
 </style>
 </head>
 <body>
 
 <div id="login-screen">
-  <div class="login-box">
-    <h2 style="margin-bottom: 20px;">🔒 Vereins-Login</h2>
-    <input type="password" id="login-pass" class="form-input" style="text-align:center" placeholder="Passwort eingeben">
-    <button class="btn-add" style="width:100%" onclick="checkLogin()">Einloggen</button>
-    <p id="login-msg" style="color: #ff4444; margin-top: 15px; font-size: 14px; font-weight: bold;"></p>
+  <div class="modal-box" style="text-align: center;">
+    <h2 style="margin-bottom:20px">🔒 Vereins-Login</h2>
+    <input type="password" id="login-pass" class="form-input" style="text-align:center" placeholder="Passwort">
+    <button class="btn btn-primary" style="width:100%; margin-top:15px" onclick="checkLogin()">Einloggen</button>
+    <p id="login-msg" style="color:var(--danger); margin-top:10px; font-size:13px"></p>
   </div>
 </div>
 
-<div id="header">
-  <div id="header-inner">
-    <div class="header-top">
-      <div>
-        <h1 id="header-verein">Lädt...</h1>
-        <div class="festdate">Termin: <strong id="fest-date-label">...</strong></div>
-      </div>
-      <button onclick="openSettings()" style="background:none; border:none; font-size: 24px; cursor:pointer;">⚙️</button>
-    </div>
-    <div class="progress-wrap">
-      <div class="progress-label"><span id="progress-text">0/0</span><span id="progress-pct">0%</span></div>
-      <div class="progress-bar-bg"><div class="progress-bar-fill" id="progress-bar" style="width:0%"></div></div>
-    </div>
+<aside id="sidebar" class="sidebar-hidden">
+  <div class="sidebar-header">
+    <h3>📂 Feste</h3>
+    <button onclick="toggleMenu()" class="btn-ghost">✕</button>
   </div>
-</div>
-
-<div id="main">
-  <div class="filter-row">
-    <div class="filter-group">
-      <div id="cat-filters"></div>
-      <select id="person-filter" class="filter-select" onchange="setPersonFilter(this.value)">
-        <option value="all">👤 Alle Personen</option>
-      </select>
-    </div>
-    <button class="btn-add" onclick="addTask()">+ Aufgabe</button>
+  <div class="event-list" id="event-list-ui"></div>
+  <div style="padding: 15px; border-top: 1px solid #2a2a4a;">
+    <button class="btn btn-ghost" style="width:100%" onclick="openEventModal()">+ Neues Fest</button>
   </div>
-  <div id="task-list"></div>
-</div>
+</aside>
 
-<div class="modal-overlay" id="settings-modal">
+<main id="content">
+  <header id="header">
+    <div class="top-bar">
+      <button id="menu-toggle" onclick="toggleMenu()">☰</button>
+      <h2 id="current-event-name">Lädt...</h2>
+      <button onclick="openSettings()" style="margin-left:auto; background:none; border:none; font-size:20px; cursor:pointer">⚙️</button>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card"><span class="stat-lbl">Fortschritt</span><span class="stat-val" id="stat-progress">0%</span></div>
+      <div class="stat-card"><span class="stat-lbl">Budget Ist</span><span class="stat-val" id="stat-budget">0,00 €</span></div>
+      <div class="stat-card"><span class="stat-lbl">Tage bis Fest</span><span class="stat-val" id="stat-days">-</span></div>
+    </div>
+  </header>
+
+  <div id="main-scroll">
+    <div class="filter-row" style="margin-bottom:20px; display:flex; gap:10px; flex-wrap:wrap">
+       <div id="cat-filters" style="display:flex; gap:5px"></div>
+       <button class="btn btn-primary" onclick="addTask()" style="margin-left:auto">+ Aufgabe</button>
+    </div>
+    <div id="task-list"></div>
+  </div>
+</main>
+
+<div class="modal-overlay" id="event-modal">
   <div class="modal-box">
-    <h3>⚙️ Einstellungen</h3>
-    <label>Vereinsname</label>
-    <input type="text" id="set-name" class="form-input">
-    <label>Festdatum</label>
-    <input type="date" id="set-date" class="form-input">
-    <label>Login-Passwort ändern</label>
-    <input type="text" id="set-pass" class="form-input">
-    <div style="display:flex; gap:10px;">
-      <button class="btn-add" style="flex:1; background:#333; border-color:#555;" onclick="closeSettings()">Abbrechen</button>
-      <button class="btn-add" style="flex:1" onclick="saveSettings()">Speichern</button>
+    <h3 id="event-modal-title">Neues Fest anlegen</h3>
+    <div class="form-group">
+      <label>Name des Fests (z.B. Musikfest 2026)</label>
+      <input type="text" id="ev-name" class="form-input">
+    </div>
+    <div class="form-group">
+      <label>Datum</label>
+      <input type="date" id="ev-date" class="form-input">
+    </div>
+    <div id="copy-options" style="display:none">
+      <label>Aufgaben kopieren von:</label>
+      <select id="ev-copy-source" class="form-input"></select>
+      <p style="font-size:11px; color:#9090c0">Kopiert alle Aufgaben ohne erledigt-Haken.</p>
+    </div>
+    <div style="display:flex; gap:10px; margin-top:20px;">
+      <button class="btn btn-ghost" style="flex:1" onclick="closeEventModal()">Abbrechen</button>
+      <button class="btn btn-primary" style="flex:1" onclick="saveEvent()">Speichern</button>
     </div>
   </div>
 </div>
@@ -119,25 +130,21 @@
 <div class="modal-overlay" id="edit-modal">
   <div class="modal-box">
     <h3>✏️ Aufgabe bearbeiten</h3>
-    <label>Titel der Aufgabe</label>
-    <input type="text" id="edit-title" class="form-input">
-    <label>Zuständige Person</label>
-    <input type="text" id="edit-assignee" class="form-input">
-    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px">
-      <div>
-        <label>Kategorie</label>
-        <select id="edit-cat" class="form-input"></select>
-      </div>
-      <div>
-        <label>Wochen davor</label>
-        <input type="number" id="edit-weeks" class="form-input">
-      </div>
+    <div class="form-group"><label>Titel</label><input type="text" id="ed-title" class="form-input"></div>
+    <div class="form-group"><label>Zuständig</label><input type="text" id="ed-assignee" class="form-input"></div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
+      <div class="form-group"><label>Kategorie</label><select id="ed-cat" class="form-input"></select></div>
+      <div class="form-group"><label>Wochen davor</label><input type="number" id="ed-weeks" class="form-input"></div>
     </div>
-    <label>Notizen</label>
-    <textarea id="edit-notes" class="form-input" rows="3"></textarea>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
+      <div class="form-group"><label>Kosten geplant (€)</label><input type="number" id="ed-cost-p" class="form-input"></div>
+      <div class="form-group"><label>Kosten Ist (€)</label><input type="number" id="ed-cost-i" class="form-input"></div>
+    </div>
+    <div class="form-group"><label>Notizen / Link</label><textarea id="ed-notes" class="form-input" rows="2"></textarea></div>
     <div style="display:flex; gap:10px;">
-      <button class="btn-add" style="flex:1; background:#333; border-color:#555;" onclick="closeEdit()">Abbrechen</button>
-      <button class="btn-add" style="flex:1" onclick="saveEdit()">Speichern</button>
+      <button class="btn btn-danger" onclick="deleteTask()">Löschen</button>
+      <button class="btn btn-ghost" style="flex:1" onclick="closeEdit()">Abbrechen</button>
+      <button class="btn btn-primary" style="flex:1" onclick="saveEdit()">Speichern</button>
     </div>
   </div>
 </div>
@@ -155,7 +162,6 @@
     messagingSenderId: "854695927344",
     appId: "1:854695927344:web:4e576eadb272376c3417f5"
   };
-
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
 
@@ -169,139 +175,182 @@
   };
 
   let state = {
-    config: { name: "Mein Verein", date: "2025-05-03", pass: "1234" },
-    tasks: [],
-    filterCat: "all",
-    filterPerson: "all"
+    events: {},
+    currentEventId: null,
+    config: { pass: "1234" },
+    filterCat: 'all'
   };
 
-  window.checkLogin = function() {
-    const input = document.getElementById("login-pass").value;
-    const msg = document.getElementById("login-msg");
-    const validPass = (state.config && state.config.pass) ? String(state.config.pass) : "1234";
-    
-    if(input === validPass) {
-      msg.textContent = "";
-      document.getElementById("login-screen").style.display = "none";
-    } else {
-      msg.textContent = "Passwort falsch eingegeben!";
-      document.getElementById("login-pass").value = "";
-      document.getElementById("login-pass").focus();
-    }
-  };
+  function toggleMenu() { document.getElementById("sidebar").classList.toggle("sidebar-hidden"); }
 
-  db.ref('festplaner').on('value', (snap) => {
+  // Initialer Sync
+  db.ref('festplaner_v2').on('value', (snap) => {
     const data = snap.val();
     if(data) {
-      if(data.config) state.config = data.config;
-      state.tasks = data.tasks || [];
+      state.events = data.events || {};
+      state.config = data.config || state.config;
+      if(!state.currentEventId && Object.keys(state.events).length > 0) {
+        state.currentEventId = Object.keys(state.events)[0];
+      }
       render();
+    } else {
+      // Migration: Falls v2 leer ist, versuche altes Format zu laden
+      db.ref('festplaner').once('value', (oldSnap) => {
+        const old = oldSnap.val();
+        if(old) {
+          const id = "event_" + Date.now();
+          state.events[id] = { name: old.config.name, date: old.config.date, tasks: old.tasks || [] };
+          state.currentEventId = id;
+          sync();
+        }
+      });
     }
   });
 
-  function sync() {
-    db.ref('festplaner').set({ tasks: state.tasks, config: state.config });
+  function sync() { db.ref('festplaner_v2').set({ events: state.events, config: state.config }); }
+
+  function checkLogin() {
+    if(document.getElementById("login-pass").value === state.config.pass) {
+      document.getElementById("login-screen").style.display = "none";
+    } else {
+      document.getElementById("login-msg").textContent = "Passwort falsch!";
+    }
   }
 
   function render() {
-    document.getElementById("header-verein").textContent = "🎪 " + (state.config.name || "Fest-Planer");
-    const fDate = new Date(state.config.date || "2025-05-03");
-    document.getElementById("fest-date-label").textContent = fDate.toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' });
+    // Event Liste in Sidebar
+    const evListUI = document.getElementById("event-list-ui");
+    evListUI.innerHTML = Object.entries(state.events).map(([id, ev]) => `
+      <div class="event-item ${id === state.currentEventId ? 'active' : ''}" onclick="selectEvent('${id}')">
+        <span class="event-item-name">${ev.name}</span>
+        <span class="event-item-date">${new Date(ev.date).getFullYear()}</span>
+      </div>
+    `).join('');
 
-    const persons = [...new Set(state.tasks.map(t => t.assignee).filter(n => n))].sort();
-    document.getElementById("person-filter").innerHTML = '<option value="all">👤 Alle Personen</option>' + 
-      persons.map(p => `<option value="${p}" ${p===state.filterPerson?'selected':''}>${p}</option>`).join('');
+    if(!state.currentEventId) return;
+    const event = state.events[state.currentEventId];
+    document.getElementById("current-event-name").textContent = event.name;
 
+    // Stats
+    const tasks = event.tasks || [];
+    const done = tasks.filter(t => t.done).length;
+    const progress = tasks.length ? Math.round(done/tasks.length*100) : 0;
+    const budget = tasks.reduce((sum, t) => sum + (parseFloat(t.costI) || 0), 0);
+    const days = Math.ceil((new Date(event.date) - new Date()) / 86400000);
+
+    document.getElementById("stat-progress").textContent = progress + "%";
+    document.getElementById("stat-budget").textContent = budget.toLocaleString('de-DE', {style:'currency', currency:'EUR'});
+    document.getElementById("stat-days").textContent = days > 0 ? days : "Vorbei";
+
+    // Kategorien Filter
+    document.getElementById("cat-filters").innerHTML = `<button class="btn btn-ghost" onclick="setFilter('all')">Alle</button>` + 
+      Object.entries(CATEGORIES).map(([k,v]) => `<button class="btn btn-ghost ${state.filterCat===k?'btn-primary':''}" onclick="setFilter('${k}')">${v.icon}</button>`).join('');
+
+    // Tasks
     const list = document.getElementById("task-list");
-    const filtered = state.tasks.filter(t => (state.filterCat === "all" || t.cat === state.filterCat) && (state.filterPerson === "all" || t.assignee === state.filterPerson));
+    const filtered = tasks.filter(t => state.filterCat === 'all' || t.cat === state.filterCat);
     filtered.sort((a,b) => a.done - b.done || b.weeksBefore - a.weeksBefore);
 
     const now = new Date();
     list.innerHTML = filtered.map(t => {
-      const deadline = new Date(fDate.getTime() - t.weeksBefore * 7 * 86400000);
-      const diffDays = Math.ceil((deadline - now) / (1000 * 60 * 60 * 24));
-      let statusClass = "";
-      let dayText = diffDays < 0 ? `${Math.abs(diffDays)} Tage überfällig` : `Noch ${diffDays} Tage`;
-      let dayColor = "#7070a0";
-
-      if (t.done) { statusClass = "status-done"; dayText = "Erledigt"; }
-      else if (diffDays < 0) { statusClass = "status-overdue"; dayColor = "#ff4444"; }
-      else if (diffDays <= 7) { statusClass = "status-urgent"; dayColor = "#ffbb33"; }
+      const deadline = new Date(new Date(event.date).getTime() - t.weeksBefore * 7 * 86400000);
+      const diff = Math.ceil((deadline - now) / 86400000);
+      let cls = "";
+      if(t.done) cls = "status-done";
+      else if(diff < 0) cls = "status-overdue";
+      else if(diff <= 7) cls = "status-urgent";
 
       return `
-        <div class="task-card ${statusClass}">
-          <div class="task-main">
-            <input type="checkbox" ${t.done ? 'checked' : ''} onchange="toggleTask(${t.id})" style="width:22px; height:22px; cursor:pointer;">
-            <div class="task-info">
-              <span class="days-label" style="color:${dayColor}">${dayText}</span>
-              <div class="task-title" style="${t.done?'text-decoration:line-through;color:#606080':''}">${t.title}</div>
-              <div class="task-sub">${CATEGORIES[t.cat].icon} • Fällig: ${deadline.toLocaleDateString('de-DE')}</div>
-              ${t.assignee ? `<div class="assignee-badge">👤 ${t.assignee}</div>` : ''}
+        <div class="task-card ${cls}">
+          <div style="display:flex; gap:15px; align-items:flex-start">
+            <input type="checkbox" ${t.done?'checked':''} onchange="toggleTask(${t.id})" style="width:20px; height:20px">
+            <div style="flex:1" onclick="openEdit(${t.id})">
+              <span style="font-size:10px; color:${diff<0?'#ff4444':'#7070a0'}">${t.done?'ERLEDIGT':(diff<0?Math.abs(diff)+' TAGE ÜBERFÄLLIG':'NOCH '+diff+' TAGE')}</span>
+              <div class="task-title">${t.title} ${t.costI > 0 ? `<span class="money-badge">${t.costI}€</span>`:''}</div>
+              <div style="font-size:12px; color:#7070a0">${CATEGORIES[t.cat].icon} • ${t.assignee || 'Niemand'}</div>
             </div>
-            <div style="display:flex; flex-direction:column; gap:12px;">
-                <button onclick="openEdit(${t.id})" style="background:none;border:none;cursor:pointer;font-size:20px;">✏️</button>
-                <button onclick="deleteTask(${t.id})" style="background:none;border:none;cursor:pointer;font-size:20px;">🗑️</button>
-            </div>
+            <button onclick="openEdit(${t.id})" style="background:none; border:none; cursor:pointer">✏️</button>
           </div>
-        </div>`;
+        </div>
+      `;
     }).join('');
-
-    const doneCount = state.tasks.filter(t => t.done).length;
-    const pct = state.tasks.length ? Math.round(doneCount/state.tasks.length*100) : 0;
-    document.getElementById("progress-text").textContent = `${doneCount}/${state.tasks.length} Aufgaben`;
-    document.getElementById("progress-bar").style.width = pct + "%";
-    document.getElementById("progress-pct").textContent = pct + "%";
-
-    document.getElementById("cat-filters").innerHTML = `<button class="filter-btn ${state.filterCat==='all'?'active':''}" onclick="setCatFilter('all')">Alle</button>` + 
-      Object.entries(CATEGORIES).map(([k,v]) => `<button class="filter-btn ${state.filterCat===k?'active':''}" onclick="setCatFilter('${k}')">${v.icon}</button>`).join('');
   }
 
-  window.setCatFilter = (c) => { state.filterCat = c; render(); };
-  window.setPersonFilter = (p) => { state.filterPerson = p; render(); };
-  window.toggleTask = (id) => { const t = state.tasks.find(x=>x.id===id); t.done = !t.done; sync(); };
-  window.deleteTask = (id) => { if(confirm("Aufgabe wirklich löschen?")) { state.tasks = state.tasks.filter(x=>x.id!==id); sync(); } };
+  function selectEvent(id) { state.currentEventId = id; state.filterCat = 'all'; render(); toggleMenu(); }
+  function setFilter(c) { state.filterCat = c; render(); }
+  function toggleTask(id) { 
+    const t = state.events[state.currentEventId].tasks.find(x => x.id === id);
+    t.done = !t.done; sync();
+  }
 
-  let editId = null;
-  window.openEdit = (id) => {
-    editId = id;
-    const t = state.tasks.find(x=>x.id===id);
-    document.getElementById("edit-title").value = t.title;
-    document.getElementById("edit-assignee").value = t.assignee || "";
-    document.getElementById("edit-weeks").value = t.weeksBefore;
-    document.getElementById("edit-notes").value = t.notes || "";
-    document.getElementById("edit-cat").innerHTML = Object.entries(CATEGORIES).map(([k,v])=>`<option value="${k}" ${t.cat===k?'selected':''}>${v.label}</option>`).join('');
+  // Event Management
+  function openEventModal() { 
+    document.getElementById("event-modal").style.display = "flex"; 
+    const sourceSelect = document.getElementById("ev-copy-source");
+    sourceSelect.innerHTML = '<option value="none">--- Kein Kopieren (Leer starten) ---</option>' + 
+      Object.entries(state.events).map(([id, ev]) => `<option value="${id}">${ev.name}</option>`).join('');
+    document.getElementById("copy-options").style.display = "block";
+  }
+  function closeEventModal() { document.getElementById("event-modal").style.display = "none"; }
+  function saveEvent() {
+    const name = document.getElementById("ev-name").value;
+    const date = document.getElementById("ev-date").value;
+    const sourceId = document.getElementById("ev-copy-source").value;
+    if(!name || !date) return alert("Bitte Name und Datum angeben");
+
+    const id = "event_" + Date.now();
+    let newTasks = [];
+    if(sourceId !== "none") {
+      newTasks = state.events[sourceId].tasks.map(t => ({ ...t, done: false, costI: 0 }));
+    }
+
+    state.events[id] = { name, date, tasks: newTasks };
+    state.currentEventId = id;
+    sync(); closeEventModal();
+  }
+
+  // Task Management
+  let activeTaskId = null;
+  function openEdit(id) {
+    activeTaskId = id;
+    const t = state.events[state.currentEventId].tasks.find(x => x.id === id);
+    document.getElementById("ed-title").value = t.title;
+    document.getElementById("ed-assignee").value = t.assignee || "";
+    document.getElementById("ed-weeks").value = t.weeksBefore;
+    document.getElementById("ed-cost-p").value = t.costP || 0;
+    document.getElementById("ed-cost-i").value = t.costI || 0;
+    document.getElementById("ed-notes").value = t.notes || "";
+    document.getElementById("ed-cat").innerHTML = Object.entries(CATEGORIES).map(([k,v])=>`<option value="${k}" ${t.cat===k?'selected':''}>${v.label}</option>`).join('');
     document.getElementById("edit-modal").style.display = "flex";
-  };
-  window.closeEdit = () => document.getElementById("edit-modal").style.display = "none";
-  window.saveEdit = () => {
-    const t = state.tasks.find(x=>x.id===editId);
-    t.title = document.getElementById("edit-title").value;
-    t.assignee = document.getElementById("edit-assignee").value;
-    t.weeksBefore = parseInt(document.getElementById("edit-weeks").value) || 0;
-    t.cat = document.getElementById("edit-cat").value;
-    t.notes = document.getElementById("edit-notes").value;
+  }
+  function closeEdit() { document.getElementById("edit-modal").style.display = "none"; }
+  function saveEdit() {
+    const t = state.events[state.currentEventId].tasks.find(x => x.id === activeTaskId);
+    t.title = document.getElementById("ed-title").value;
+    t.assignee = document.getElementById("ed-assignee").value;
+    t.cat = document.getElementById("ed-cat").value;
+    t.weeksBefore = parseInt(document.getElementById("ed-weeks").value) || 0;
+    t.costP = parseFloat(document.getElementById("ed-cost-p").value) || 0;
+    t.costI = parseFloat(document.getElementById("ed-cost-i").value) || 0;
+    t.notes = document.getElementById("ed-notes").value;
     sync(); closeEdit();
-  };
-
-  window.addTask = () => {
+  }
+  function addTask() {
     const id = Date.now();
-    state.tasks.push({ id, title: "Neue Aufgabe", assignee: "", cat: "werbung", weeksBefore: 4, done: false, notes: "" });
+    if(!state.events[state.currentEventId].tasks) state.events[state.currentEventId].tasks = [];
+    state.events[state.currentEventId].tasks.push({ id, title: "Neue Aufgabe", cat: "werbung", weeksBefore: 4, done: false });
     sync(); openEdit(id);
-  };
-
-  window.openSettings = () => {
-    document.getElementById("set-name").value = state.config.name;
-    document.getElementById("set-date").value = state.config.date;
-    document.getElementById("set-pass").value = state.config.pass;
-    document.getElementById("settings-modal").style.display = "flex";
-  };
-  window.closeSettings = () => document.getElementById("settings-modal").style.display = "none";
-  window.saveSettings = () => {
-    state.config.name = document.getElementById("set-name").value;
-    state.config.date = document.getElementById("set-date").value;
-    state.config.pass = document.getElementById("set-pass").value;
-    sync(); closeSettings();
-  };
+  }
+  function deleteTask() {
+    if(confirm("Löschen?")) {
+      state.events[state.currentEventId].tasks = state.events[state.currentEventId].tasks.filter(x => x.id !== activeTaskId);
+      sync(); closeEdit();
+    }
+  }
+  function openSettings() {
+    const newPass = prompt("Login-Passwort ändern?", state.config.pass);
+    if(newPass) { state.config.pass = newPass; sync(); }
+  }
 </script>
 </body>
 </html>
