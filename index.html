@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎪 Musikfest-Planer Pro</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0d0d14; color: #e8e8f0; font-family: -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; min-height: 100vh; }
+  input, select, textarea, button { font-family: inherit; }
+  input[type=checkbox] { accent-color: #c8a45a; width: 24px; height: 24px; cursor: pointer; flex-shrink: 0; }
+  
+  /* Header & Progress */
+  #header { background: linear-gradient(135deg,#1a1a2e,#16213e 50%,#0f3460); border-bottom: 1px solid #2a2a5a; padding: 20px; position: sticky; top: 0; z-index: 50; }
+  #header-inner { max-width: 900px; margin: 0 auto; }
+  .header-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+  .eyebrow { font-size: 10px; letter-spacing: 3px; color: #7a7aaa; text-transform: uppercase; margin-bottom: 4px; }
+  h1 { font-size: 22px; font-weight: bold; color: #e8e8ff; }
+  .festdate { margin-top: 5px; font-size: 13px; color: #9090c0; }
+  .festdate strong { color: #c8a45a; }
+  .header-btns { display: flex; gap: 8px; margin-top: 10px; }
+  .btn-ghost { background: #1a1a35; border: 1px solid #3a3a6a; border-radius: 8px; color: #9090c0; padding: 8px 14px; cursor: pointer; font-size: 14px; }
+
+  .progress-wrap { margin-top: 15px; }
+  .progress-label { display: flex; justify-content: space-between; font-size: 11px; color: #7070a0; margin-bottom: 5px; }
+  .progress-bar-bg { background: #1a1a30; border-radius: 4px; height: 8px; overflow: hidden; }
+  .progress-bar-fill { height: 100%; background: linear-gradient(90deg,#4a7a9b,#c8a45a); transition: width .5s ease; }
+
+  /* Main Content */
+  #main { max-width: 900px; margin: 0 auto; padding: 20px; }
+
+  /* Filter & Actions */
+  .filter-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+  .filter-group { display: flex; gap: 8px; flex-wrap: wrap; }
+  .filter-btn { padding: 8px 14px; border-radius: 20px; font-size: 13px; cursor: pointer; border: 1px solid #2a2a4a; background: transparent; color: #7070a0; }
+  .filter-btn.active { background: #3a3a6a; color: #fff; border-color: #c8a45a; }
+  .btn-add { padding: 12px 24px; border-radius: 25px; font-size: 15px; font-weight: bold; cursor: pointer; background: #2a4a2a; border: 1px solid #4a8a4a; color: #a0e0a0; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+
+  /* Task Cards */
+  #task-list { display: flex; flex-direction: column; gap: 12px; }
+  .task-card { background: #0f0f20; border-radius: 12px; padding: 16px; border: 1px solid #252545; transition: transform 0.1s; position: relative; }
+  .task-card.done-card { opacity: 0.6; background: #0a0a15; }
+  .task-main { display: flex; align-items: flex-start; gap: 15px; }
+  .task-info { flex: 1; min-width: 0; }
+  .task-title { font-size: 17px; font-weight: 500; margin-bottom: 4px; color: #fff; }
+  .task-title.done-title { text-decoration: line-through; color: #606080; }
+  .task-sub { font-size: 13px; color: #6060a0; line-height: 1.4; }
+  .assignee-badge { color: #c8a45a; font-weight: bold; border: 1px solid #c8a45a44; padding: 2px 8px; border-radius: 6px; display: inline-block; margin-top: 8px; font-size: 12px; background: rgba(200, 164, 90, 0.05); }
+  
+  .task-actions { display: flex; gap: 10px; margin-top: 15px; justify-content: flex-end; border-top: 1px solid #1e1e3a; padding-top: 12px; }
+  .btn-icon { background: #1a1a30; border: 1px solid #3a3a6a; border-radius: 8px; color: #7070aa; padding: 8px 12px; cursor: pointer; font-size: 15px; }
+
+  /* Modals */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 15px; }
+  .modal-box { background: #12121f; border: 1px solid #3a3a6a; border-radius: 16px; padding: 24px; width: 100%; max-width: 450px; }
+  .form-label { display: block; font-size: 11px; color: #7070a0; margin-bottom: 6px; text-transform: uppercase; }
+  .form-input { width: 100%; background: #0d0d1a; border: 1px solid #3a3a6a; border-radius: 8px; color: #fff; padding: 12px; font-size: 16px; margin-bottom: 15px; outline: none; }
+
+  @media (max-width: 600px) {
+    .btn-add { width: 100%; text-align: center; order: -1; }
+    .filter-row { flex-direction: column; align-items: stretch; }
+  }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <div id="header-inner">
+    <div class="header-top">
+      <div>
+        <div class="eyebrow">Vereins-Cloud-Planer</div>
+        <h1 id="header-title">🎪 <span id="header-verein">Lädt...</span></h1>
+        <div class="festdate">Fest-Wochenende: <strong id="fest-date-label">Berechne...</strong></div>
+      </div>
+      <div class="header-btns">
+        <button class="btn-ghost" onclick="toggleSettings()">⚙️</button>
+      </div>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-label"><span id="progress-text">0/0 erledigt</span><span id="progress-pct">0%</span></div>
+      <div class="progress-bar-bg"><div class="progress-bar-fill" id="progress-bar" style="width:0%"></div></div>
+    </div>
+  </div>
+</div>
+
+<div id="main">
+  <div class="filter-row">
+    <div class="filter-group" id="filter-group"></div>
+    <button class="btn-add" onclick="addTask()">+ Aufgabe hinzufügen</button>
+  </div>
+  <div id="task-list"></div>
+</div>
+
+<div class="modal-overlay" id="edit-modal" style="display:none">
+  <div class="modal-box">
+    <h3 style="margin-bottom:20px; color:#c8a45a">Aufgabe bearbeiten</h3>
+    <label class="form-label">Titel</label>
+    <input type="text" class="form-input" id="edit-title">
+    <label class="form-label">Zuständig</label>
+    <input type="text" class="form-input" id="edit-assignee">
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px">
+      <div>
+        <label class="form-label">Kategorie</label>
+        <select class="form-input" id="edit-cat"></select>
+      </div>
+      <div>
+        <label class="form-label">Wochen vor Fest</label>
+        <input type="number" class="form-input" id="edit-weeks">
+      </div>
+    </div>
+    <label class="form-label">Notizen</label>
+    <textarea class="form-input" id="edit-notes" rows="3"></textarea>
+    <div style="display:flex; gap:12px; margin-top:10px">
+      <button class="btn-ghost" style="flex:1" onclick="closeEdit()">Abbrechen</button>
+      <button class="btn-add" style="flex:1" onclick="saveEdit()">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+<script>
+  // --- KONFIGURATION ---
+  const firebaseConfig = {
+    apiKey: "AIzaSyBgEL-pylLEkGJfv7g5NxMsupH-teoD7wA",
+    authDomain: "musikfest-planer.firebaseapp.com",
+    databaseURL: "https://musikfest-planer-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "musikfest-planer",
+    storageBucket: "musikfest-planer.firebasestorage.app",
+    messagingSenderId: "854695927344",
+    appId: "1:854695927344:web:4e576eadb272376c3417f5"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  const CATEGORIES = {
+    zelt: { label: "Festzelt", icon: "⛺" },
+    behoerde: { label: "Behörden", icon: "🏛️" },
+    programm: { label: "Programm", icon: "🎵" },
+    lieferant: { label: "Logistik", icon: "🍺" },
+    finanzen: { label: "Finanzen", icon: "💰" }
+  };
+
+  let state = { vereinsname: "Musikfest-Planer", tasks: [], filterCat: "all" };
+  let editingId = null;
+
+  const FEST_DATE = new Date(2025, 4, 3); // Beispieldatum
+
+  const tasksRef = db.ref('festplaner/tasks');
+  const nameRef = db.ref('festplaner/name');
+
+  tasksRef.on('value', (snapshot) => {
+    state.tasks = snapshot.val() || [];
+    render();
+  });
+
+  nameRef.on('value', (snapshot) => {
+    state.vereinsname = snapshot.val() || "Musikfest-Planer";
+    document.getElementById("header-verein").textContent = state.vereinsname;
+  });
+
+  function sync() {
+    tasksRef.set(state.tasks);
+    nameRef.set(state.vereinsname);
+  }
+
+  window.render = function() {
+    const list = document.getElementById("task-list");
+    const filtered = state.tasks.filter(t => state.filterCat === "all" || t.cat === state.filterCat);
+    filtered.sort((a,b) => a.done - b.done || b.weeksBefore - a.weeksBefore);
+
+    list.innerHTML = filtered.map(t => {
+      const d = new Date(FEST_DATE.getTime() - t.weeksBefore * 7 * 86400000);
+      return `
+        <div class="task-card ${t.done ? 'done-card' : ''}">
+          <div class="task-main">
+            <input type="checkbox" ${t.done ? 'checked' : ''} onchange="toggleTask(${t.id})">
+            <div class="task-info">
+              <div class="task-title ${t.done ? 'done-title' : ''}">${t.title}</div>
+              <div class="task-sub">${CATEGORIES[t.cat].icon} ${CATEGORIES[t.cat].label} • ${d.toLocaleDateString('de-DE')}</div>
+              ${t.assignee ? `<div class="assignee-badge">👤 ${t.assignee}</div>` : ''}
+            </div>
+          </div>
+          <div class="task-actions">
+            <button class="btn-icon" onclick="shareTask(${t.id})">🔗</button>
+            <button class="btn-icon" onclick="openEdit(${t.id})">✏️</button>
+            <button class="btn-icon" style="color:#ff5555" onclick="deleteTask(${t.id})">🗑️</button>
+          </div>
+        </div>`;
+    }).join('');
+
+    const done = state.tasks.filter(t => t.done).length;
+    const total = state.tasks.length;
+    const pct = total ? Math.round(done/total*100) : 0;
+    document.getElementById("progress-text").textContent = `${done}/${total} erledigt`;
+    document.getElementById("progress-pct").textContent = pct + "%";
+    document.getElementById("progress-bar").style.width = pct + "%";
+    
+    const fGroup = document.getElementById("filter-group");
+    fGroup.innerHTML = `<button class="filter-btn ${state.filterCat==='all'?'active':''}" onclick="setFilter('all')">Alle</button>` + 
+      Object.entries(CATEGORIES).map(([k,v]) => `<button class="filter-btn ${state.filterCat===k?'active':''}" onclick="setFilter('${k}')">${v.icon}</button>`).join('');
+    
+    document.getElementById("fest-date-label").textContent = FEST_DATE.toLocaleDateString('de-DE');
+  };
+
+  window.setFilter = (c) => { state.filterCat = c; render(); };
+  window.toggleTask = (id) => { const t = state.tasks.find(x=>x.id===id); if(t){t.done=!t.done; sync();} };
+  window.addTask = () => {
+    const n = { id: Date.now(), title: "Neue Aufgabe", assignee: "", cat: "zelt", weeksBefore: 4, done: false, notes: "" };
+    state.tasks.push(n); sync(); openEdit(n.id);
+  };
+  window.deleteTask = (id) => { if(confirm("Löschen?")){state.tasks=state.tasks.filter(x=>x.id!==id); sync();} };
+  window.openEdit = (id) => {
+    editingId = id;
+    const t = state.tasks.find(x=>x.id===id);
+    document.getElementById("edit-title").value = t.title;
+    document.getElementById("edit-assignee").value = t.assignee || "";
+    document.getElementById("edit-weeks").value = t.weeksBefore;
+    document.getElementById("edit-notes").value = t.notes || "";
+    document.getElementById("edit-cat").innerHTML = Object.entries(CATEGORIES).map(([k,v])=>`<option value="${k}" ${t.cat===k?'selected':''}>${v.label}</option>`).join('');
+    document.getElementById("edit-modal").style.display = "flex";
+  };
+  window.closeEdit = () => { document.getElementById("edit-modal").style.display = "none"; };
+  window.saveEdit = () => {
+    const t = state.tasks.find(x=>x.id===editingId);
+    if(t){
+      t.title = document.getElementById("edit-title").value;
+      t.assignee = document.getElementById("edit-assignee").value;
+      t.weeksBefore = parseInt(document.getElementById("edit-weeks").value) || 0;
+      t.cat = document.getElementById("edit-cat").value;
+      t.notes = document.getElementById("edit-notes").value;
+      sync(); closeEdit();
+    }
+  };
+  window.shareTask = (id) => {
+    const t = state.tasks.find(x=>x.id===id);
+    const txt = `Aufgabe: ${t.title}\nZuständig: ${t.assignee || 'offen'}`;
+    if(navigator.share) navigator.share({title:'Planer', text:txt}); else alert(txt);
+  };
+  window.toggleSettings = () => {
+    const n = prompt("Name:", state.vereinsname);
+    if(n){ state.vereinsname = n; sync(); }
+  };
+  render();
+</script>
+</body>
+</html>
