@@ -9,20 +9,17 @@
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   body { background: var(--bg); color: var(--text); font-family: -apple-system, sans-serif; display: flex; height: 100dvh; overflow: hidden; }
 
-  /* Layout & Navigation */
   #sidebar { width: 280px; background: #0a0a15; border-right: 1px solid #2a2a4a; display: flex; flex-direction: column; transition: transform 0.3s ease; position: absolute; top: 0; bottom: 0; left: 0; z-index: 2000; }
   .sidebar-hidden { transform: translateX(-100%); }
   #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; z-index: 1500; }
   #content { flex: 1; display: flex; flex-direction: column; width: 100%; min-width: 0; }
 
-  /* Header & Stats */
   #header { background: linear-gradient(135deg,#1a1a2e, #0f3460); padding: 15px; border-bottom: 1px solid #2a2a5a; }
   .stats-grid { display: grid; grid-template-columns: 1fr 1.2fr 1fr; gap: 8px; margin-top: 10px; }
   .stat-card { background: rgba(255,255,255,0.05); padding: 8px; border-radius: 10px; text-align: center; }
-  .stat-val { display: block; font-size: 13px; font-weight: bold; color: var(--accent); }
+  .stat-val { display: block; font-size: 12px; font-weight: bold; color: var(--accent); }
   .stat-lbl { font-size: 9px; color: #7070a0; text-transform: uppercase; }
 
-  /* Filter */
   .filter-area { background: #0a0a15; border-bottom: 1px solid #252545; }
   .filter-row { display: flex; gap: 8px; padding: 8px 12px; overflow-x: auto; scrollbar-width: none; }
   .filter-row::-webkit-scrollbar { display: none; }
@@ -33,9 +30,9 @@
   .user-filter { padding: 6px 14px; border-radius: 20px; background: #1a1a30; border: 1px solid #3a3a6a; font-size: 11px; color: #fff; cursor: pointer; white-space: nowrap; }
   .user-filter.active { background: var(--accent); color: #000; border-color: var(--accent); }
 
-  /* Task Cards */
   .task-card { background: #0f0f20; border-radius: 14px; padding: 12px; border: 1px solid #252545; border-left: 5px solid #3a3a6a; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; transition: all 0.2s; }
   .status-done { opacity: 0.5; border-left-color: var(--safe) !important; filter: grayscale(0.5); }
+  .status-locked { opacity: 0.3; filter: grayscale(1); pointer-events: none; }
   .status-overdue { border-left-color: var(--danger) !important; background: rgba(255, 68, 68, 0.05); }
   .status-urgent { border-left-color: var(--warning) !important; }
   
@@ -46,16 +43,15 @@
   .cd-badge.urgent { color: var(--warning); }
   .cd-badge.overdue { color: var(--danger); font-weight: 800; }
 
-  /* UI Elements */
   .btn { padding: 10px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; font-size: 13px; }
   .btn-primary { background: var(--accent); color: #000; }
   .btn-ghost { background: #1a1a30; color: #fff; border: 1px solid #3a3a6a; }
   .btn-danger { background: var(--danger); color: #fff; }
-  .form-input { width: 100%; background: #0d0d1a; border: 1px solid #3a3a6a; border-radius: 10px; color: #fff; padding: 12px; margin-bottom: 12px; font-size: 16px; }
+  .form-input { width: 100%; background: #0d0d1a; border: 1px solid #3a3a6a; border-radius: 10px; color: #fff; padding: 10px; margin-bottom: 10px; font-size: 14px; }
 
   #main-scroll { flex: 1; overflow-y: auto; padding: 15px; }
   #login-screen { position: fixed; inset: 0; background: var(--bg); z-index: 4000; display: flex; align-items: center; justify-content: center; }
-  .modal-box { background: #12121f; border: 1px solid #3a3a6a; border-radius: 20px; padding: 25px; width: 100%; max-width: 450px; max-height: 85vh; overflow-y: auto; }
+  .modal-box { background: #12121f; border: 1px solid #3a3a6a; border-radius: 20px; padding: 20px; width: 100%; max-width: 450px; max-height: 90vh; overflow-y: auto; }
 
   @media (min-width: 1024px) { #sidebar { position: relative; transform: none; } #overlay { display: none !important; } }
 </style>
@@ -98,9 +94,9 @@
       <button id="admin-ev-edit" class="btn btn-ghost" style="display:none" onclick="openEventEdit()">⚙️</button>
     </div>
     <div class="stats-grid" id="stats-ui" style="display:none">
-      <div class="stat-card"><span class="stat-lbl">Fortschritt</span><span class="stat-val" id="stat-progress">-</span></div>
-      <div class="stat-card"><span class="stat-lbl">Kosten Ist</span><span class="stat-val" id="stat-budget">0 €</span></div>
-      <div class="stat-card"><span class="stat-lbl">Countdown</span><span class="stat-val" id="stat-days">-</span></div>
+      <div class="stat-card"><span class="stat-lbl">Aufgaben</span><span class="stat-val" id="stat-progress">-</span></div>
+      <div class="stat-card"><span class="stat-lbl">Kosten</span><span class="stat-val" id="stat-budget">0 €</span></div>
+      <div class="stat-card"><span class="stat-lbl">Zeit bis</span><span class="stat-val" id="stat-days">-</span></div>
     </div>
   </header>
 
@@ -126,6 +122,10 @@
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
       <div><label style="font-size:11px">Wochen vorher</label><input type="number" id="ed-weeks" class="form-input"></div>
       <div><label style="font-size:11px">Ist-Kosten €</label><input type="number" id="ed-cost" class="form-input"></div>
+    </div>
+    <div>
+      <label style="font-size:11px">Wartet auf Erledigung von:</label>
+      <select id="ed-pretask" class="form-input"></select>
     </div>
     <textarea id="ed-notes" class="form-input" placeholder="Notizen..." style="height:80px"></textarea>
     <div style="display:flex; gap:10px">
@@ -226,7 +226,6 @@
     if(!state.currentUser) return;
     const sortedEvents = Object.entries(state.events).sort((a,b) => new Date(a[1].date||0) - new Date(b[1].date||0));
     
-    // Sidebar
     document.getElementById("event-list-ui").innerHTML = sortedEvents.map(([id, ev]) => {
         const role = getMyRole(id);
         const myTasks = (ev.tasks || []).filter(t => t.assignee === state.currentUser.name && !t.done);
@@ -266,7 +265,6 @@
         document.getElementById("admin-ev-edit").style.display = (role === 'planer') ? "block" : "none";
         document.getElementById("add-btn").style.display = (role !== 'keine') ? "block" : "none";
 
-        // Filter UI
         let catHtml = `<div class="icon-filter ${state.catFilter==='all'?'active':''}" onclick="state.catFilter='all';render()">🌍</div>`;
         Object.entries(CATEGORIES).forEach(([k, c]) => {
             catHtml += `<div class="icon-filter ${state.catFilter===k?'active':''}" onclick="state.catFilter='${k}';render()">${c.icon}</div>`;
@@ -279,7 +277,6 @@
         activeUsers.forEach(u => { if(u !== state.currentUser.name) userHtml += `<div class="user-filter ${state.userFilter===u?'active':''}" onclick="state.userFilter='${u}';render()">${u}</div>`; });
         document.getElementById("user-filters").innerHTML = userHtml;
 
-        // Stats Logic
         const allTasks = ev.tasks || [];
         const doneTasks = allTasks.filter(t => t.done).length;
         const totalCost = allTasks.reduce((sum, t) => sum + (parseFloat(t.cost) || 0), 0);
@@ -290,54 +287,65 @@
         document.getElementById("stat-budget").textContent = `${totalCost.toFixed(0)} €`;
         document.getElementById("stat-days").innerHTML = `${weeksLeft} <small style="font-size:8px">Wo.</small> / ${daysLeft} <small style="font-size:8px">Tg.</small>`;
 
-        // Task Filtering & Sorting
-        let tasks = [...allTasks];
+        let tasks = allTasks.map(t => {
+            if (t.preTask) {
+                const pre = allTasks.find(p => p.id == t.preTask);
+                if (pre && !pre.done) t.isLocked = true;
+                else t.isLocked = false;
+            } else t.isLocked = false;
+            return t;
+        });
+
         if(state.catFilter !== 'all') tasks = tasks.filter(t => t.category === state.catFilter);
         if(state.userFilter === 'me') tasks = tasks.filter(t => t.assignee === state.currentUser.name);
         else if(state.userFilter !== 'all') tasks = tasks.filter(t => t.assignee === state.userFilter);
         
-        // SORTIERUNG: Offen (nach Zeit) -> Erledigt (unten)
+        // Helfer sehen gesperrte Aufgaben gar nicht
+        if (role !== 'planer') tasks = tasks.filter(t => !t.isLocked);
+
         tasks.sort((a, b) => {
             if (a.done !== b.done) return a.done - b.done; 
             return getDaysUntilDeadline(ev.date, a) - getDaysUntilDeadline(ev.date, b);
         });
 
-        taskList.innerHTML = tasks.length ? tasks.map(t => renderTaskCard(t, state.currentEventId, ev.date)).join('') : "Keine Aufgaben gefunden.";
+        taskList.innerHTML = tasks.length ? tasks.map(t => renderTaskCard(t, state.currentEventId, ev.date)).join('') : "Keine Aufgaben.";
     }
   }
 
   function renderTaskCard(t, evId, evDate) {
     const role = getMyRole(evId);
+    const isLocked = t.isLocked;
     const canEdit = (role === 'planer') || (t.assignee === state.currentUser.name) || (!t.assignee && role !== 'keine');
     const cat = CATEGORIES[t.category] || CATEGORIES.sonstiges;
     const diff = getDaysUntilDeadline(evDate, t);
     
     let statusClass = "", cdLabel = "Offen", cdClass = "";
-    if (t.done) { 
-        statusClass = "status-done"; cdLabel = "✓"; 
-    } else if (evDate && t.weeks) {
+    if (isLocked) statusClass = "status-locked";
+    else if (t.done) { statusClass = "status-done"; cdLabel = "✓"; }
+    else if (evDate && t.weeks) {
         if (diff < 0) { statusClass = "status-overdue"; cdLabel = "Fällig!"; cdClass = "overdue"; }
         else if (diff <= 7) { statusClass = "status-urgent"; cdLabel = diff + " Tg."; cdClass = "urgent"; }
         else { cdLabel = diff + " Tg."; }
     }
 
-    const noteHtml = t.notes ? `<div style="font-size:11px; color:#a0a0b0; margin:4px 0; font-style:italic; border-left:2px solid #3a3a6a; padding-left:8px; line-height:1.3; overflow:hidden; text-overflow:ellipsis;">${t.notes}</div>` : '';
+    const noteHtml = t.notes ? `<div style="font-size:11px; color:#a0a0b0; margin:4px 0; font-style:italic; border-left:2px solid #3a3a6a; padding-left:8px; line-height:1.3;">${t.notes}</div>` : '';
     const stampColor = t.done ? "var(--safe)" : "#505070";
+    const lockInfo = isLocked ? `<span style="color:var(--danger); font-size:9px;">🔒 Wartet auf Vorgänger</span>` : '';
     const stampHtml = t.lastChanged ? `<span style="color:${stampColor}; font-size:9px; margin-left:auto; opacity:0.7;">✍️ ${t.lastChanged}</span>` : '';
 
     return `
       <div class="task-card ${statusClass}">
-        <input type="checkbox" ${t.done?'checked':''} onchange="toggleTask('${evId}', ${t.id})" style="width:22px; height:22px; cursor:pointer">
-        <div class="cat-box" style="background:${cat.color}22; color:${cat.color}">${cat.icon}</div>
-        <div class="task-info" onclick="${canEdit ? `openEdit('${evId}', ${t.id})` : ''}">
+        <input type="checkbox" ${t.done?'checked':''} ${isLocked?'disabled':''} onchange="toggleTask('${evId}', ${t.id})" style="width:22px; height:22px">
+        <div class="cat-box" style="background:${cat.color}22; color:${cat.color}">${isLocked?'🔒':cat.icon}</div>
+        <div class="task-info" onclick="${(canEdit && !isLocked) ? `openEdit('${evId}', ${t.id})` : ''}">
           <div style="font-weight:bold; font-size:14px; display:flex; justify-content:space-between; align-items:center;">
             <span>${t.title}</span>
             ${t.cost ? `<span style="color:var(--safe); font-size:11px;">${t.cost}€</span>` : ''}
           </div>
           ${noteHtml}
           <div class="meta-row">
-            <span class="cd-badge ${cdClass}">${cdLabel}</span>
-            <span style="color:#707090">${t.assignee || '👤 Offen'}</span>
+            ${lockInfo || `<span class="cd-badge ${cdClass}">${cdLabel}</span>`}
+            <span style="color:#707090">${t.assignee || 'Offen'}</span>
             ${stampHtml}
           </div>
         </div>
@@ -348,9 +356,8 @@
     const tasks = [...state.events[evId].tasks];
     const idx = tasks.findIndex(x => x.id === id);
     tasks[idx].done = !tasks[idx].done;
-    
     const user = state.currentUser.name;
-    const now = new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' });
+    const now = new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
 
     if (tasks[idx].done) {
         tasks[idx].lastChanged = `${now} - ${user}`;
@@ -359,44 +366,50 @@
         tasks[idx].lastChanged = `Offen - ${user}`;
         delete tasks[idx].doneDate;
     }
-    
     db.ref(`festplaner_v4/events/${evId}/tasks`).set(tasks);
   }
 
   function saveEdit() {
     const tasks = [...state.events[activeTaskEventId].tasks];
     const idx = tasks.findIndex(x => x.id === activeTaskId);
-    
     tasks[idx].title = document.getElementById("ed-title").value;
     tasks[idx].category = document.getElementById("ed-cat").value;
     tasks[idx].weeks = parseInt(document.getElementById("ed-weeks").value) || 0;
     tasks[idx].cost = parseFloat(document.getElementById("ed-cost").value) || 0;
     tasks[idx].notes = document.getElementById("ed-notes").value;
     tasks[idx].assignee = document.getElementById("ed-assignee").value;
-    
+    tasks[idx].preTask = document.getElementById("ed-pretask").value;
     tasks[idx].lastChanged = `${new Date().toLocaleDateString('de-DE')} - ${state.currentUser.name}`;
 
     db.ref(`festplaner_v4/events/${activeTaskEventId}/tasks`).set(tasks);
     closeModals();
   }
 
-  // --- UI Helpers ---
-  function selectEvent(id) { state.currentEventId = id; state.catFilter = 'all'; state.userFilter = 'all'; render(); if(window.innerWidth < 1024) toggleMenu(); }
-  function toggleMenu() { document.getElementById("sidebar").classList.toggle("sidebar-hidden"); document.getElementById("overlay").style.display = document.getElementById("sidebar").classList.contains("sidebar-hidden") ? "none" : "block"; }
-  function closeModals() { document.querySelectorAll('[id$="-modal"]').forEach(m => m.style.display = "none"); document.getElementById("edit-modal").style.display="none"; }
-
   function openEdit(evId, taskId) {
     activeTaskEventId = evId; activeTaskId = taskId;
-    const t = state.events[evId].tasks.find(x => x.id === taskId);
+    const ev = state.events[evId];
+    const t = ev.tasks.find(x => x.id === taskId);
     document.getElementById("ed-title").value = t.title;
     document.getElementById("ed-weeks").value = t.weeks || 0;
     document.getElementById("ed-cost").value = t.cost || 0;
     document.getElementById("ed-notes").value = t.notes || "";
     document.getElementById("ed-cat").innerHTML = Object.entries(CATEGORIES).map(([k,c]) => `<option value="${k}" ${t.category===k?'selected':''}>${c.icon} ${c.label}</option>`).join('');
-    const uList = Object.keys(state.events[evId].roles || {}).filter(n => state.events[evId].roles[n] !== 'keine');
+    
+    const uList = Object.keys(ev.roles || {}).filter(n => ev.roles[n] !== 'keine');
     document.getElementById("ed-assignee").innerHTML = '<option value="">Offen</option>' + uList.map(u => `<option value="${u}" ${t.assignee===u?'selected':''}>${u}</option>`).join('');
+    
+    let preHtml = '<option value="">Sofort verfügbar</option>';
+    ev.tasks.filter(x => x.id !== taskId).forEach(ot => {
+        preHtml += `<option value="${ot.id}" ${t.preTask == ot.id ? 'selected':''}>${ot.title}</option>`;
+    });
+    document.getElementById("ed-pretask").innerHTML = preHtml;
+    
     document.getElementById("edit-modal").style.display = "flex";
   }
+
+  function selectEvent(id) { state.currentEventId = id; state.catFilter = 'all'; state.userFilter = 'all'; render(); if(window.innerWidth < 1024) toggleMenu(); }
+  function toggleMenu() { document.getElementById("sidebar").classList.toggle("sidebar-hidden"); document.getElementById("overlay").style.display = document.getElementById("sidebar").classList.contains("sidebar-hidden") ? "none" : "block"; }
+  function closeModals() { document.getElementById("edit-modal").style.display="none"; document.getElementById("event-edit-modal").style.display="none"; document.getElementById("user-mgmt-modal").style.display="none"; }
 
   function addTask() {
     const tasks = state.events[state.currentEventId].tasks || [];
@@ -420,7 +433,6 @@
                 <option value="keine" ${r==='keine'?'selected':''}>Aus</option>
                 <option value="planer" ${r==='planer'?'selected':''}>Planer</option>
                 <option value="helfer" ${r==='helfer'?'selected':''}>Helfer</option>
-                <option value="exklusiv" ${r==='exklusiv'?'selected':''}>Exklusiv</option>
             </select></div>`;
     });
     document.getElementById("event-roles-list").innerHTML = h;
@@ -428,26 +440,22 @@
   }
 
   function saveEventEdit() { db.ref(`festplaner_v4/events/${state.currentEventId}`).update({name: document.getElementById("ev-edit-name").value, date: document.getElementById("ev-edit-date").value}); closeModals(); }
-  function deleteEvent() { if(confirm("Dieses Fest wirklich komplett löschen?")) { db.ref(`festplaner_v4/events/${state.currentEventId}`).remove(); selectEvent('home'); closeModals(); } }
-  function deleteTask() { if(confirm("Aufgabe löschen?")) { const tasks = state.events[activeTaskEventId].tasks.filter(x => x.id !== activeTaskId); db.ref(`festplaner_v4/events/${activeTaskEventId}/tasks`).set(tasks); closeModals(); } }
-
+  function deleteEvent() { if(confirm("Löschen?")) { db.ref(`festplaner_v4/events/${state.currentEventId}`).remove(); selectEvent('home'); closeModals(); } }
+  function deleteTask() { if(confirm("Löschen?")) { const tasks = state.events[activeTaskEventId].tasks.filter(x => x.id !== activeTaskId); db.ref(`festplaner_v4/events/${activeTaskEventId}/tasks`).set(tasks); closeModals(); } }
   function openUserMgmt() {
     document.getElementById("user-list-admin").innerHTML = Object.values(state.users).map(u => `<div style="display:flex; justify-content:space-between; padding:5px; border-bottom:1px solid #222; font-size:12px;"><span>${u.name}</span><button onclick="db.ref('festplaner_v4/users/${u.name}').remove()" style="color:red; background:none; border:none">✖</button></div>`).join('');
     document.getElementById("user-mgmt-modal").style.display = "flex";
   }
-
   function createNewUser() {
     const n = document.getElementById("new-u-name").value.toLowerCase().trim();
     const p = document.getElementById("new-u-pass").value.trim();
     if(n && p && n !== 'admin') db.ref('festplaner_v4/users/'+n).set({name:n, pass:p});
     document.getElementById("new-u-name").value=""; document.getElementById("new-u-pass").value="";
   }
-
   function openEventModal() {
-    const n = prompt("Name des neuen Festes?");
+    const n = prompt("Name?");
     if(n) db.ref('festplaner_v4/events/ev_'+Date.now()).set({name:n, tasks: [], roles: {}});
   }
-
   function importCSV() {
     const f = document.getElementById('csv-file').files[0];
     if(!f) return;
