@@ -19,7 +19,6 @@
   
   .filter-area { background: #0a0a15; border-bottom: 1px solid #252545; }
   .filter-row { display: flex; gap: 8px; padding: 8px 12px; overflow-x: auto; scrollbar-width: none; }
-  .filter-row::-webkit-scrollbar { display: none; }
 
   .icon-filter { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 20px; border-radius: 10px; flex-shrink: 0; background: #1a1a30; border: 1px solid #3a3a6a; cursor: pointer; }
   .icon-filter.active { border-color: var(--accent); background: var(--panel); }
@@ -42,7 +41,7 @@
   
   .cat-box { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
   .task-info { flex: 1; min-width: 0; }
-  .task-notes-preview { font-size: 11px; color: #a0a0c0; margin-top: 4px; font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
+  .task-notes-preview { font-size: 11px; color: #a0a0c0; margin-top: 4px; font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .cd-badge { font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 4px; background: #3a3a6a; color: #fff; }
 
   .btn { padding: 10px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; font-size: 13px; text-align: center; }
@@ -138,7 +137,14 @@
     <h3>Fest bearbeiten</h3>
     <input type="text" id="ev-edit-name" class="form-input">
     <input type="date" id="ev-edit-date" class="form-input">
-    <div style="display:flex; gap:10px; margin-top:10px">
+    
+    <div style="border: 1px dashed #3a3a6a; padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+        <h4 style="font-size: 12px; color: var(--accent); margin-bottom: 8px;">CSV Import (Titel, Kategorie, Wochen, Notiz)</h4>
+        <input type="file" id="csv-file" accept=".csv" style="font-size: 11px; margin-bottom: 8px;">
+        <button class="btn btn-ghost" style="width:100%; font-size: 11px;" onclick="importCSV()">📂 Import starten</button>
+    </div>
+
+    <div style="display:flex; gap:10px">
       <button class="btn btn-danger" onclick="deleteEvent()">🗑️ Fest löschen</button>
       <button class="btn btn-ghost" style="flex:1" onclick="document.getElementById('event-edit-modal').style.display='none'">Abbr.</button>
       <button class="btn btn-primary" style="flex:1" onclick="saveEventEdit()">Speichern</button>
@@ -222,15 +228,13 @@
 
   function render() {
     if(!state.currentUser) return;
-
-    // --- SIDEBAR: Sortierte Eventliste (zeitlich aufsteigend) ---
-    const sortedEventEntries = Object.entries(state.events).sort((a, b) => {
-        const dateA = a[1].date ? new Date(a[1].date) : new Date(8640000000000000);
-        const dateB = b[1].date ? new Date(b[1].date) : new Date(8640000000000000);
-        return dateA - dateB;
+    const sortedEvents = Object.entries(state.events).sort((a,b) => {
+        const dA = a[1].date ? new Date(a[1].date) : new Date(8640000000000000);
+        const dB = b[1].date ? new Date(b[1].date) : new Date(8640000000000000);
+        return dA - dB;
     });
 
-    document.getElementById("event-list-ui").innerHTML = sortedEventEntries.map(([id, ev]) => `
+    document.getElementById("event-list-ui").innerHTML = sortedEvents.map(([id, ev]) => `
       <div style="padding:10px; background:#1a1a30; border-radius:8px; margin-bottom:5px; cursor:pointer; border:1px solid ${id===state.currentEventId?'var(--accent)':'transparent'}" onclick="selectEvent('${id}')">
         <div style="font-weight:bold; font-size:13px">${ev.name}</div>
         <div style="font-size:10px; color:#7070a0">${ev.date ? new Date(ev.date).toLocaleDateString('de-DE') : 'Kein Datum'}</div>
@@ -246,21 +250,18 @@
       document.getElementById("admin-ev-edit").style.display = "none";
       filterContainer.style.display = "none";
       addBtn.style.display = "none";
-
       let html = "";
-      sortedEventEntries.forEach(([evId, ev]) => {
+      sortedEvents.forEach(([evId, ev]) => {
         let myTasks = (ev.tasks || []).filter(t => t.assignee === state.currentUser.name && !t.done);
         if(myTasks.length > 0) {
           html += `<div class="event-group-header">${ev.name}</div>`;
-          myTasks.sort((a,b) => getDiff(ev.date, a) - getDiff(ev.date, b)).forEach(t => {
-            html += renderTaskCard(t, evId, ev.date);
-          });
+          myTasks.sort((a,b) => getDiff(ev.date, a) - getDiff(ev.date, b)).forEach(t => html += renderTaskCard(t, evId, ev.date));
         }
       });
-      taskList.innerHTML = html || "<p style='text-align:center; padding:40px; color:#7070a0'>Keine offenen Aufgaben für dich.</p>";
+      taskList.innerHTML = html || "<p style='text-align:center; padding:40px; color:#7070a0'>Alles erledigt!</p>";
     } else {
       const ev = state.events[state.currentEventId];
-      if(!ev) { selectEvent('home'); return; }
+      if(!ev) return;
       document.getElementById("current-event-name").textContent = ev.name;
       document.getElementById("admin-ev-edit").style.display = (state.currentUser.role == 0) ? "block" : "none";
       filterContainer.style.display = "block";
@@ -298,17 +299,72 @@
     let catHtml = `<div class="icon-filter ${state.catFilter==='all'?'active':''}" onclick="state.catFilter='all';render()">🌍</div>`;
     Object.entries(CATEGORIES).forEach(([k, c]) => { catHtml += `<div class="icon-filter ${state.catFilter===k?'active':''}" onclick="state.catFilter='${k}';render()">${c.icon}</div>`; });
     document.getElementById("cat-filters").innerHTML = catHtml;
-
     const activeUsers = [...new Set((ev.tasks || []).map(t => t.assignee).filter(Boolean))];
     let userHtml = `<div class="user-filter ${state.userFilter==='all'?'active':''}" onclick="state.userFilter='all';render()">Alle</div>`;
     activeUsers.forEach(u => { userHtml += `<div class="user-filter ${state.userFilter===u?'active':''}" onclick="state.userFilter='${u}';render()">${u}</div>`; });
     document.getElementById("user-filters").innerHTML = userHtml;
   }
 
+  // --- CSV IMPORT LOGIK ---
+  function importCSV() {
+    const fileInput = document.getElementById('csv-file');
+    if(!fileInput.files.length) return alert("Bitte Datei wählen");
+    
+    const file = fileInput.files[0];
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const text = e.target.result;
+        const lines = text.split('\n');
+        const tasks = state.events[state.currentEventId].tasks || [];
+        
+        lines.forEach(line => {
+            const cols = line.split(',').map(c => c.trim());
+            if(cols.length >= 1 && cols[0] !== "") {
+                tasks.push({
+                    id: Date.now() + Math.random(),
+                    title: cols[0],
+                    category: (CATEGORIES[cols[1]?.toLowerCase()]) ? cols[1].toLowerCase() : "sonstiges",
+                    weeksBefore: parseInt(cols[2]) || 1,
+                    notes: cols[3] || "",
+                    done: false,
+                    assignee: ""
+                });
+            }
+        });
+        db.ref('festplaner_v3/events/' + state.currentEventId + '/tasks').set(tasks);
+        alert("Import abgeschlossen!");
+        document.getElementById('event-edit-modal').style.display = 'none';
+    };
+    reader.readAsText(file);
+  }
+
+  // (Die restlichen Standard-Funktionen bleiben gleich...)
+  function selectEvent(id) { state.currentEventId = id; render(); if(window.innerWidth < 1024) toggleMenu(); }
+  function toggleMenu() { document.getElementById("sidebar").classList.toggle("sidebar-hidden"); document.getElementById("overlay").style.display = document.getElementById("sidebar").classList.contains("sidebar-hidden") ? "none" : "block"; }
+  function openEventModal() { document.getElementById("event-modal-ui").style.display = "flex"; }
+  function openEventEdit() {
+    const ev = state.events[state.currentEventId];
+    document.getElementById("ev-edit-name").value = ev.name;
+    document.getElementById("ev-edit-date").value = ev.date || "";
+    document.getElementById("event-edit-modal").style.display = "flex";
+  }
+  function saveEventEdit() {
+    const name = document.getElementById("ev-edit-name").value;
+    const date = document.getElementById("ev-edit-date").value;
+    if(name) {
+      db.ref('festplaner_v3/events/' + state.currentEventId).update({ name, date });
+      document.getElementById("event-edit-modal").style.display = "none";
+    }
+  }
+  function deleteEvent() {
+    if(!confirm("Wirklich alles löschen?")) return;
+    db.ref('festplaner_v3/events/' + state.currentEventId).remove();
+    document.getElementById("event-edit-modal").style.display = "none";
+    selectEvent('home');
+  }
   function openEdit(evId, taskId) {
     if(state.currentUser.role > 1) return;
-    activeTaskEventId = evId;
-    activeTaskId = taskId;
+    activeTaskEventId = evId; activeTaskId = taskId;
     const t = state.events[evId].tasks.find(x => x.id === taskId);
     document.getElementById("modal-task-origin").textContent = state.events[evId].name;
     document.getElementById("ed-title").value = t.title;
@@ -317,11 +373,9 @@
     document.getElementById("ed-notes").value = t.notes || "";
     document.getElementById("ed-cat").innerHTML = Object.entries(CATEGORIES).map(([k,c]) => `<option value="${k}" ${t.category===k?'selected':''}>${c.icon} ${c.label}</option>`).join('');
     const selectableUsers = Object.values(state.users).filter(u => u.role !== 0);
-    document.getElementById("ed-assignee").innerHTML = '<option value="">Offen</option>' + 
-      selectableUsers.map(u => `<option value="${u.name}" ${t.assignee===u.name?'selected':''}>${u.name}</option>`).join('');
+    document.getElementById("ed-assignee").innerHTML = '<option value="">Offen</option>' + selectableUsers.map(u => `<option value="${u.name}" ${t.assignee===u.name?'selected':''}>${u.name}</option>`).join('');
     document.getElementById("edit-modal").style.display = "flex";
   }
-
   function saveEdit() {
     const tasks = [...state.events[activeTaskEventId].tasks];
     const idx = tasks.findIndex(x => x.id === activeTaskId);
@@ -334,21 +388,18 @@
     db.ref('festplaner_v3/events/' + activeTaskEventId + '/tasks').set(tasks);
     document.getElementById("edit-modal").style.display = "none";
   }
-
   function deleteTask() {
-    if(!confirm("Aufgabe wirklich löschen?")) return;
+    if(!confirm("Löschen?")) return;
     const tasks = state.events[activeTaskEventId].tasks.filter(x => x.id !== activeTaskId);
     db.ref('festplaner_v3/events/' + activeTaskEventId + '/tasks').set(tasks);
     document.getElementById("edit-modal").style.display = "none";
   }
-
   function toggleTask(evId, id) {
     const tasks = [...state.events[evId].tasks];
     const idx = tasks.findIndex(x => x.id === id);
     tasks[idx].done = !tasks[idx].done;
     db.ref('festplaner_v3/events/' + evId + '/tasks').set(tasks);
   }
-
   function addTask() {
     const tasks = state.events[state.currentEventId].tasks || [];
     const id = Date.now();
@@ -356,52 +407,17 @@
     db.ref('festplaner_v3/events/' + state.currentEventId + '/tasks').set(tasks);
     openEdit(state.currentEventId, id);
   }
-
-  function openEventEdit() {
-    const ev = state.events[state.currentEventId];
-    document.getElementById("ev-edit-name").value = ev.name;
-    document.getElementById("ev-edit-date").value = ev.date || "";
-    document.getElementById("event-edit-modal").style.display = "flex";
-  }
-
-  function saveEventEdit() {
-    const name = document.getElementById("ev-edit-name").value;
-    const date = document.getElementById("ev-edit-date").value;
-    if(name) {
-      db.ref('festplaner_v3/events/' + state.currentEventId).update({ name, date });
-      document.getElementById("event-edit-modal").style.display = "none";
-    }
-  }
-
-  function deleteEvent() {
-    if(!confirm("Das gesamte Fest und alle zugehörigen Aufgaben löschen?")) return;
-    db.ref('festplaner_v3/events/' + state.currentEventId).remove();
-    document.getElementById("event-edit-modal").style.display = "none";
-    selectEvent('home');
-  }
-
   function openUserMgmt() {
-    document.getElementById("user-list-admin").innerHTML = Object.values(state.users).map(u => `
-      <div style="display:flex; justify-content:space-between; margin-bottom:5px; background:#1a1a30; padding:8px; border-radius:5px">
-        <span>${u.name} (${u.role==1?'P':'H'})</span> 
-        ${u.name !== 'admin' ? `<button onclick="deleteUser('${u.name}')" style="color:red; background:none; border:none">✖</button>` : ''}
-      </div>`).join('');
+    document.getElementById("user-list-admin").innerHTML = Object.values(state.users).map(u => `<div style="display:flex; justify-content:space-between; margin-bottom:5px; background:#1a1a30; padding:8px; border-radius:5px"><span>${u.name} (${u.role==1?'P':'H'})</span>${u.name !== 'admin' ? `<button onclick="deleteUser('${u.name}')" style="color:red; background:none; border:none">✖</button>` : ''}</div>`).join('');
     document.getElementById("user-mgmt-modal").style.display = "flex";
   }
-
   function createNewUser() {
     const name = document.getElementById("new-u-name").value.toLowerCase().trim();
     const pass = document.getElementById("new-u-pass").value.trim();
     const role = parseInt(document.getElementById("new-u-role").value);
-    if(name && pass) db.ref('festplaner_v3/users/' + name).set({name, pass, role}).then(() => {
-      document.getElementById("new-u-name").value = "";
-      document.getElementById("new-u-pass").value = "";
-      openUserMgmt();
-    });
+    if(name && pass) db.ref('festplaner_v3/users/' + name).set({name, pass, role}).then(() => { document.getElementById("new-u-name").value = ""; document.getElementById("new-u-pass").value = ""; openUserMgmt(); });
   }
-
-  function deleteUser(n) { if(confirm("User löschen?")) db.ref('festplaner_v3/users/' + n).remove().then(openUserMgmt); }
-
+  function deleteUser(n) { if(confirm("Löschen?")) db.ref('festplaner_v3/users/' + n).remove().then(openUserMgmt); }
   function saveNewEvent() {
     const name = document.getElementById("ev-name").value;
     if(name) {
@@ -411,10 +427,6 @@
       selectEvent(id);
     }
   }
-
-  function selectEvent(id) { state.currentEventId = id; render(); if(window.innerWidth < 1024) toggleMenu(); }
-  function toggleMenu() { document.getElementById("sidebar").classList.toggle("sidebar-hidden"); document.getElementById("overlay").style.display = document.getElementById("sidebar").classList.contains("sidebar-hidden") ? "none" : "block"; }
-  function openEventModal() { document.getElementById("event-modal-ui").style.display = "flex"; }
 </script>
 </body>
 </html>
