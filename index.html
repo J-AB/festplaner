@@ -30,9 +30,15 @@
   .user-filter { padding: 6px 14px; border-radius: 20px; background: #1a1a30; border: 1px solid #3a3a6a; font-size: 11px; color: #fff; cursor: pointer; white-space: nowrap; }
   .user-filter.active { background: var(--accent); color: #000; border-color: var(--accent); }
 
+  /* Task Cards */
   .task-card { background: #0f0f20; border-radius: 14px; padding: 12px; border: 1px solid #252545; border-left: 5px solid #3a3a6a; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; transition: all 0.2s; }
   .status-done { opacity: 0.5; border-left-color: var(--safe) !important; filter: grayscale(0.5); }
-  .status-locked { opacity: 0.3; filter: grayscale(1); pointer-events: none; }
+  
+  /* NEU: Sperr-Logik für Planer klickbar */
+  .status-locked { opacity: 0.4; filter: grayscale(1); }
+  .status-locked input[type="checkbox"] { pointer-events: none; opacity: 0.3; }
+  .status-locked .task-info { cursor: pointer; }
+
   .status-overdue { border-left-color: var(--danger) !important; background: rgba(255, 68, 68, 0.05); }
   .status-urgent { border-left-color: var(--warning) !important; }
   
@@ -143,8 +149,6 @@
     <input type="date" id="ev-edit-date" class="form-input">
     <h4 style="margin: 10px 0; color: var(--accent); font-size: 14px;">👥 Rollen</h4>
     <div id="event-roles-list" style="margin-bottom: 15px; max-height: 150px; overflow-y: auto;"></div>
-    <button class="btn btn-ghost" style="width:100%; margin-bottom:10px" onclick="document.getElementById('csv-file').click()">📂 CSV Import</button>
-    <input type="file" id="csv-file" style="display:none" accept=".csv" onchange="importCSV()">
     <div style="display:flex; gap:10px">
       <button class="btn btn-danger" onclick="deleteEvent()">🗑️</button>
       <button class="btn btn-ghost" style="flex:1" onclick="closeModals()">Abbr.</button>
@@ -290,8 +294,7 @@
         let tasks = allTasks.map(t => {
             if (t.preTask) {
                 const pre = allTasks.find(p => p.id == t.preTask);
-                if (pre && !pre.done) t.isLocked = true;
-                else t.isLocked = false;
+                t.isLocked = (pre && !pre.done);
             } else t.isLocked = false;
             return t;
         });
@@ -337,7 +340,7 @@
       <div class="task-card ${statusClass}">
         <input type="checkbox" ${t.done?'checked':''} ${isLocked?'disabled':''} onchange="toggleTask('${evId}', ${t.id})" style="width:22px; height:22px">
         <div class="cat-box" style="background:${cat.color}22; color:${cat.color}">${isLocked?'🔒':cat.icon}</div>
-        <div class="task-info" onclick="${(canEdit && !isLocked) ? `openEdit('${evId}', ${t.id})` : ''}">
+        <div class="task-info" onclick="${(canEdit && (role === 'planer' || !isLocked)) ? `openEdit('${evId}', ${t.id})` : ''}">
           <div style="font-weight:bold; font-size:14px; display:flex; justify-content:space-between; align-items:center;">
             <span>${t.title}</span>
             ${t.cost ? `<span style="color:var(--safe); font-size:11px;">${t.cost}€</span>` : ''}
@@ -409,7 +412,7 @@
 
   function selectEvent(id) { state.currentEventId = id; state.catFilter = 'all'; state.userFilter = 'all'; render(); if(window.innerWidth < 1024) toggleMenu(); }
   function toggleMenu() { document.getElementById("sidebar").classList.toggle("sidebar-hidden"); document.getElementById("overlay").style.display = document.getElementById("sidebar").classList.contains("sidebar-hidden") ? "none" : "block"; }
-  function closeModals() { document.getElementById("edit-modal").style.display="none"; document.getElementById("event-edit-modal").style.display="none"; document.getElementById("user-mgmt-modal").style.display="none"; }
+  function closeModals() { document.querySelectorAll('[id$="-modal"]').forEach(m => m.style.display = "none"); }
 
   function addTask() {
     const tasks = state.events[state.currentEventId].tasks || [];
@@ -455,22 +458,6 @@
   function openEventModal() {
     const n = prompt("Name?");
     if(n) db.ref('festplaner_v4/events/ev_'+Date.now()).set({name:n, tasks: [], roles: {}});
-  }
-  function importCSV() {
-    const f = document.getElementById('csv-file').files[0];
-    if(!f) return;
-    const r = new FileReader();
-    r.onload = (e) => {
-        const tasks = state.events[state.currentEventId].tasks || [];
-        e.target.result.split(/\r?\n/).forEach((l, i) => {
-            if(i===0 || !l.trim()) return;
-            const c = l.split(l.includes(';')?';':',').map(x => x.trim().replace(/^"|"$/g, ''));
-            if(c[0]) tasks.push({ id: Date.now()+Math.random(), title: c[0], category: c[1]||"sonstiges", weeks: c[2]||0, notes: c[3]||"", cost: 0, done: false, assignee: "" });
-        });
-        db.ref(`festplaner_v4/events/${state.currentEventId}/tasks`).set(tasks);
-        closeModals();
-    };
-    r.readAsText(f);
   }
 </script>
 </body>
