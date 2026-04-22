@@ -1,1 +1,285 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎪 Vereinsfest-Planer Pro</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0d0d14; color: #e8e8f0; font-family: -apple-system, Segoe UI, Roboto, sans-serif; min-height: 100vh; }
+  
+  /* Login Screen */
+  #login-screen { position: fixed; inset: 0; background: #0d0d14; z-index: 1000; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+  
+  /* Header */
+  #header { background: linear-gradient(135deg,#1a1a2e,#16213e 50%,#0f3460); border-bottom: 1px solid #2a2a5a; padding: 20px; position: sticky; top: 0; z-index: 50; }
+  #header-inner { max-width: 900px; margin: 0 auto; }
+  .header-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+  h1 { font-size: 22px; color: #e8e8ff; }
+  .festdate { margin-top: 5px; font-size: 13px; color: #9090c0; }
+  .festdate strong { color: #c8a45a; }
 
+  /* Progress */
+  .progress-wrap { margin-top: 15px; }
+  .progress-label { display: flex; justify-content: space-between; font-size: 11px; color: #7070a0; margin-bottom: 5px; }
+  .progress-bar-bg { background: #1a1a30; border-radius: 4px; height: 8px; overflow: hidden; }
+  .progress-bar-fill { height: 100%; background: linear-gradient(90deg,#4a7a9b,#c8a45a); transition: width .5s ease; }
+
+  /* UI Elements */
+  #main { max-width: 900px; margin: 0 auto; padding: 20px; }
+  .filter-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+  .filter-group { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  
+  .filter-btn, select.filter-select { padding: 8px 12px; border-radius: 10px; font-size: 13px; cursor: pointer; border: 1px solid #2a2a4a; background: #1a1a30; color: #fff; }
+  .filter-btn.active { border-color: #c8a45a; background: #3a3a6a; }
+  
+  .btn-add { padding: 12px 24px; border-radius: 25px; font-size: 14px; font-weight: bold; cursor: pointer; background: #2a4a2a; border: 1px solid #4a8a4a; color: #a0e0a0; }
+
+  /* Task Cards */
+  #task-list { display: flex; flex-direction: column; gap: 12px; }
+  .task-card { background: #0f0f20; border-radius: 12px; padding: 16px; border: 1px solid #252545; }
+  .task-card.done-card { opacity: 0.5; }
+  .task-main { display: flex; gap: 15px; }
+  .task-info { flex: 1; }
+  .task-title { font-size: 17px; margin-bottom: 4px; }
+  .assignee-badge { color: #c8a45a; font-weight: bold; border: 1px solid #c8a45a44; padding: 2px 8px; border-radius: 6px; display: inline-block; margin-top: 8px; font-size: 12px; }
+
+  /* Modals */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: none; align-items: center; justify-content: center; z-index: 100; padding: 15px; }
+  .modal-box { background: #12121f; border: 1px solid #3a3a6a; border-radius: 16px; padding: 24px; width: 100%; max-width: 450px; }
+  .form-input { width: 100%; background: #0d0d1a; border: 1px solid #3a3a6a; border-radius: 8px; color: #fff; padding: 12px; margin-bottom: 15px; }
+  
+  @media (max-width: 600px) { .filter-row { flex-direction: column; align-items: stretch; } }
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <h2 style="margin-bottom: 20px;">🔒 Vereins-Login</h2>
+  <input type="password" id="login-pass" class="form-input" style="width: 250px;" placeholder="Passwort eingeben...">
+  <button class="btn-add" onclick="checkLogin()">Einloggen</button>
+  <p id="login-msg" style="color: #ff5555; margin-top: 10px; font-size: 13px;"></p>
+</div>
+
+<div id="header">
+  <div id="header-inner">
+    <div class="header-top">
+      <div>
+        <h1 id="header-verein">Lädt...</h1>
+        <div class="festdate">Termin: <strong id="fest-date-label">...</strong></div>
+      </div>
+      <button class="btn-ghost" onclick="openSettings()" style="background:none; border:none; font-size: 20px; cursor:pointer;">⚙️</button>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-label"><span id="progress-text">0/0</span><span id="progress-pct">0%</span></div>
+      <div class="progress-bar-bg"><div class="progress-bar-fill" id="progress-bar" style="width:0%"></div></div>
+    </div>
+  </div>
+</div>
+
+<div id="main">
+  <div class="filter-row">
+    <div class="filter-group">
+      <div id="cat-filters"></div>
+      <select id="person-filter" class="filter-select" onchange="setPersonFilter(this.value)">
+        <option value="all">👤 Alle Personen</option>
+      </select>
+    </div>
+    <button class="btn-add" onclick="addTask()">+ Aufgabe</button>
+  </div>
+  <div id="task-list"></div>
+</div>
+
+<div class="modal-overlay" id="settings-modal">
+  <div class="modal-box">
+    <h3>⚙️ Einstellungen</h3>
+    <label style="font-size: 11px;">VEREINSNAME</label>
+    <input type="text" id="set-name" class="form-input">
+    <label style="font-size: 11px;">FESTDATUM</label>
+    <input type="date" id="set-date" class="form-input">
+    <label style="font-size: 11px;">NEUES PASSWORT (Optional)</label>
+    <input type="text" id="set-pass" class="form-input" placeholder="Leer lassen = kein Wechsel">
+    <div style="display:flex; gap:10px;">
+      <button class="btn-add" style="flex:1; background:#333;" onclick="closeSettings()">Abbrechen</button>
+      <button class="btn-add" style="flex:1" onclick="saveSettings()">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal-box">
+    <h3>✏️ Aufgabe bearbeiten</h3>
+    <input type="text" id="edit-title" class="form-input" placeholder="Titel">
+    <input type="text" id="edit-assignee" class="form-input" placeholder="Wer macht's? (Name)">
+    <select id="edit-cat" class="form-input"></select>
+    <input type="number" id="edit-weeks" class="form-input" placeholder="Wochen davor">
+    <textarea id="edit-notes" class="form-input" rows="3" placeholder="Notizen"></textarea>
+    <div style="display:flex; gap:10px;">
+      <button class="btn-add" style="flex:1; background:#333;" onclick="closeEdit()">Abbrechen</button>
+      <button class="btn-add" style="flex:1" onclick="saveEdit()">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyBgEL-pylLEkGJfv7g5NxMsupH-teoD7wA",
+    authDomain: "musikfest-planer.firebaseapp.com",
+    databaseURL: "https://musikfest-planer-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "musikfest-planer",
+    storageBucket: "musikfest-planer.firebasestorage.app",
+    messagingSenderId: "854695927344",
+    appId: "1:854695927344:web:4e576eadb272376c3417f5"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  const CATEGORIES = {
+    zelt: { label: "Zelt", icon: "⛺" },
+    behoerde: { label: "Amt", icon: "🏛️" },
+    programm: { label: "Musik", icon: "🎵" },
+    lieferant: { label: "Logistik", icon: "🍺" },
+    finanzen: { label: "Geld", icon: "💰" }
+  };
+
+  let state = {
+    config: { name: "Mein Verein", date: "2025-05-03", pass: "1234" },
+    tasks: [],
+    filterCat: "all",
+    filterPerson: "all"
+  };
+
+  // --- Login System ---
+  function checkLogin() {
+    const input = document.getElementById("login-pass").value;
+    if(input === state.config.pass) {
+      document.getElementById("login-screen").style.display = "none";
+    } else {
+      document.getElementById("login-msg").textContent = "Falsches Passwort!";
+    }
+  }
+
+  // --- Daten Sync ---
+  db.ref('festplaner').on('value', (snap) => {
+    const data = snap.val();
+    if(data) {
+      state.tasks = data.tasks || [];
+      state.config = data.config || state.config;
+      render();
+    }
+  });
+
+  function sync() {
+    db.ref('festplaner').set({ tasks: state.tasks, config: state.config });
+  }
+
+  // --- Rendering ---
+  function render() {
+    document.getElementById("header-verein").textContent = "🎪 " + state.config.name;
+    const fDate = new Date(state.config.date);
+    document.getElementById("fest-date-label").textContent = fDate.toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' });
+
+    // Personen-Filter Liste füllen
+    const persons = [...new Set(state.tasks.map(t => t.assignee).filter(n => n))].sort();
+    const pSel = document.getElementById("person-filter");
+    const currentP = state.filterPerson;
+    pSel.innerHTML = '<option value="all">👤 Alle Personen</option>' + 
+      persons.map(p => `<option value="${p}" ${p===currentP?'selected':''}>${p}</option>`).join('');
+
+    // Task Liste
+    const list = document.getElementById("task-list");
+    const filtered = state.tasks.filter(t => {
+      const catMatch = state.filterCat === "all" || t.cat === state.filterCat;
+      const personMatch = state.filterPerson === "all" || t.assignee === state.filterPerson;
+      return catMatch && personMatch;
+    });
+
+    filtered.sort((a,b) => a.done - b.done || b.weeksBefore - a.weeksBefore);
+
+    list.innerHTML = filtered.map(t => {
+      const d = new Date(fDate.getTime() - t.weeksBefore * 7 * 86400000);
+      return `
+        <div class="task-card ${t.done ? 'done-card' : ''}">
+          <div class="task-main">
+            <input type="checkbox" ${t.done ? 'checked' : ''} onchange="toggleTask(${t.id})">
+            <div class="task-info">
+              <div class="task-title ${t.done ? 'done-title' : ''}">${t.title}</div>
+              <div class="task-sub">${CATEGORIES[t.cat].icon} • ${d.toLocaleDateString('de-DE')}</div>
+              ${t.assignee ? `<div class="assignee-badge">👤 ${t.assignee}</div>` : ''}
+            </div>
+            <button onclick="openEdit(${t.id})" style="background:none;border:none;cursor:pointer;">✏️</button>
+            <button onclick="deleteTask(${t.id})" style="background:none;border:none;cursor:pointer;">🗑️</button>
+          </div>
+        </div>`;
+    }).join('');
+
+    // Fortschritt
+    const done = state.tasks.filter(t => t.done).length;
+    const pct = state.tasks.length ? Math.round(done/state.tasks.length*100) : 0;
+    document.getElementById("progress-text").textContent = `${done} von ${state.tasks.length} erledigt`;
+    document.getElementById("progress-bar").style.width = pct + "%";
+    document.getElementById("progress-pct").textContent = pct + "%";
+
+    // Kategorien
+    document.getElementById("cat-filters").innerHTML = `<button class="filter-btn ${state.filterCat==='all'?'active':''}" onclick="setCatFilter('all')">Alle</button>` + 
+      Object.entries(CATEGORIES).map(([k,v]) => `<button class="filter-btn ${state.filterCat===k?'active':''}" onclick="setCatFilter('${k}')">${v.icon}</button>`).join('');
+  }
+
+  // --- Actions ---
+  window.setCatFilter = (c) => { state.filterCat = c; render(); };
+  window.setPersonFilter = (p) => { state.filterPerson = p; render(); };
+  window.toggleTask = (id) => { const t = state.tasks.find(x=>x.id===id); t.done = !t.done; sync(); };
+  window.deleteTask = (id) => { if(confirm("Löschen?")) { state.tasks = state.tasks.filter(x=>x.id!==id); sync(); } };
+
+  // --- Edit Modal ---
+  let editId = null;
+  window.openEdit = (id) => {
+    editId = id;
+    const t = state.tasks.find(x=>x.id===id);
+    document.getElementById("edit-title").value = t.title;
+    document.getElementById("edit-assignee").value = t.assignee || "";
+    document.getElementById("edit-weeks").value = t.weeksBefore;
+    document.getElementById("edit-notes").value = t.notes || "";
+    document.getElementById("edit-cat").innerHTML = Object.entries(CATEGORIES).map(([k,v])=>`<option value="${k}" ${t.cat===k?'selected':''}>${v.label}</option>`).join('');
+    document.getElementById("edit-modal").style.display = "flex";
+  };
+  window.closeEdit = () => document.getElementById("edit-modal").style.display = "none";
+  window.saveEdit = () => {
+    const t = state.tasks.find(x=>x.id===editId);
+    t.title = document.getElementById("edit-title").value;
+    t.assignee = document.getElementById("edit-assignee").value;
+    t.weeksBefore = parseInt(document.getElementById("edit-weeks").value) || 0;
+    t.cat = document.getElementById("edit-cat").value;
+    t.notes = document.getElementById("edit-notes").value;
+    sync(); closeEdit();
+  };
+
+  window.addTask = () => {
+    const id = Date.now();
+    state.tasks.push({ id, title: "Neue Aufgabe", assignee: "", cat: "zelt", weeksBefore: 4, done: false, notes: "" });
+    sync(); openEdit(id);
+  };
+
+  // --- Settings Modal ---
+  window.openSettings = () => {
+    document.getElementById("set-name").value = state.config.name;
+    document.getElementById("set-date").value = state.config.date;
+    document.getElementById("set-pass").value = "";
+    document.getElementById("settings-modal").style.display = "flex";
+  };
+  window.closeSettings = () => document.getElementById("settings-modal").style.display = "none";
+  window.saveSettings = () => {
+    state.config.name = document.getElementById("set-name").value;
+    state.config.date = document.getElementById("set-date").value;
+    const newPass = document.getElementById("set-pass").value;
+    if(newPass) state.config.pass = newPass;
+    sync(); closeSettings();
+  };
+
+</script>
+</body>
+</html>
