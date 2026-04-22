@@ -7,46 +7,82 @@
 <style>
   :root { --bg: #0d0d14; --panel: #16213e; --accent: #c8a45a; --text: #e8e8f0; --danger: #ff4444; --warning: #ffbb33; --safe: #00c851; }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-  body { background: var(--bg); color: var(--text); font-family: -apple-system, sans-serif; display: flex; height: 100dvh; overflow: hidden; }
+  
+  body { 
+    background: var(--bg); 
+    color: var(--text); 
+    font-family: -apple-system, system-ui, sans-serif; 
+    display: flex; 
+    height: 100dvh; 
+    overflow: hidden; 
+  }
 
-  /* Sidebar */
-  #sidebar { width: 280px; background: #0a0a15; border-right: 1px solid #2a2a4a; display: flex; flex-direction: column; transition: transform 0.3s ease; position: absolute; top: 0; bottom: 0; left: 0; z-index: 2000; }
+  /* Sidebar & Overlay */
+  #sidebar { 
+    width: 280px; 
+    background: #0a0a15; 
+    border-right: 1px solid #2a2a4a; 
+    display: flex; 
+    flex-direction: column; 
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+    position: absolute; top: 0; bottom: 0; left: 0; z-index: 2000;
+  }
   .sidebar-hidden { transform: translateX(-100%); }
-  #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; z-index: 1500; }
+  
+  #overlay { 
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7); 
+    display: none; z-index: 1500; 
+  }
 
-  /* Header & Stats */
+  /* Main Content */
   #content { flex: 1; display: flex; flex-direction: column; width: 100%; min-width: 0; }
   #header { background: linear-gradient(135deg,#1a1a2e, #0f3460); padding: 15px; border-bottom: 1px solid #2a2a5a; }
+  
   .top-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  #menu-btn { background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
+
   .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
   .stat-card { background: rgba(255,255,255,0.05); padding: 10px; border-radius: 10px; text-align: center; }
   .stat-val { display: block; font-size: 14px; font-weight: bold; color: var(--accent); }
   .stat-lbl { font-size: 9px; color: #7070a0; }
 
-  /* Task Cards mit Farblogik */
-  #main-scroll { flex: 1; overflow-y: auto; padding: 15px; }
-  .task-card { background: #0f0f20; border-radius: 14px; padding: 15px; border: 1px solid #252545; border-left: 5px solid #3a3a6a; margin-bottom: 10px; display: flex; align-items: center; gap: 12px; }
-  
-  .status-overdue { border-left-color: var(--danger); background: #251515; } /* Rot bei Überfällig */
-  .status-urgent { border-left-color: var(--warning); background: #252015; } /* Gelb bei < 7 Tage */
-  .status-done { opacity: 0.4; border-left-color: var(--safe); background: #0f1510; }
+  /* Filter-Leiste */
+  .filter-row { 
+    display: flex; gap: 8px; padding: 10px 15px; 
+    overflow-x: auto; white-space: nowrap; 
+    border-bottom: 1px solid #252545;
+  }
+  .filter-row::-webkit-scrollbar { display: none; }
+
+  /* Task Cards */
+  #main-scroll { flex: 1; overflow-y: auto; padding: 15px; -webkit-overflow-scrolling: touch; }
+  .task-card { 
+    background: #0f0f20; border-radius: 14px; padding: 15px; 
+    border: 1px solid #252545; border-left: 5px solid #3a3a6a; 
+    margin-bottom: 10px; display: flex; align-items: center; gap: 12px;
+  }
+  .status-overdue { border-left-color: var(--danger); background: #251515; }
+  .status-urgent { border-left-color: var(--warning); background: #252015; }
+  .status-done { opacity: 0.4; border-left-color: var(--safe); }
 
   .task-info { flex: 1; min-width: 0; }
-  .countdown-label { font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-top: 4px; }
-  .cd-overdue { background: var(--danger); color: white; }
-  .cd-ok { background: #3a3a6a; color: white; }
+  .cd-badge { font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-top: 4px; background: #3a3a6a; color: white; }
+  .cd-overdue { background: var(--danger); }
 
-  /* UI Elements */
-  .btn { padding: 10px 15px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; }
+  /* UI & Modals */
+  .btn { padding: 10px 15px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; }
   .btn-primary { background: var(--accent); color: #000; }
   .btn-ghost { background: #1a1a30; color: #fff; border: 1px solid #3a3a6a; }
-  .btn-danger { background: #4a1a1a; color: #ff8888; border: 1px solid #702020; }
   .form-input { width: 100%; background: #0d0d1a; border: 1px solid #3a3a6a; border-radius: 10px; color: #fff; padding: 12px; margin-bottom: 12px; font-size: 16px; }
 
   #login-screen { position: fixed; inset: 0; background: var(--bg); z-index: 4000; display: flex; align-items: center; justify-content: center; padding: 20px; }
   .modal-box { background: #12121f; border: 1px solid #3a3a6a; border-radius: 20px; padding: 25px; width: 100%; max-width: 450px; max-height: 85vh; overflow-y: auto; }
 
-  @media (min-width: 1024px) { #sidebar { position: relative; transform: none; } #overlay { display: none !important; } }
+  @media (min-width: 1024px) {
+    #sidebar { position: relative; transform: none; }
+    #overlay { display: none !important; }
+    #menu-btn { display: none; }
+  }
 </style>
 </head>
 <body>
@@ -56,8 +92,8 @@
 <div id="login-screen">
   <div class="modal-box" style="max-width: 350px;">
     <h2 style="text-align:center; margin-bottom:20px">🎪 Vereins-Login</h2>
-    <input type="text" id="login-user" class="form-input" placeholder="Benutzername" onkeypress="if(event.key === 'Enter') document.getElementById('login-pass').focus()">
-    <input type="password" id="login-pass" class="form-input" placeholder="Passwort" onkeypress="if(event.key === 'Enter') handleLogin()">
+    <input type="text" id="login-user" class="form-input" placeholder="Benutzername" onkeypress="if(event.key==='Enter') document.getElementById('login-pass').focus()">
+    <input type="password" id="login-pass" class="form-input" placeholder="Passwort" onkeypress="if(event.key==='Enter') handleLogin()">
     <button class="btn btn-primary" style="width:100%" onclick="handleLogin()">Einloggen</button>
     <p id="login-msg" style="color:var(--danger); margin-top:15px; text-align:center; font-size:13px"></p>
   </div>
@@ -68,18 +104,18 @@
   <div id="event-list-ui" style="flex:1; overflow-y:auto; padding:10px"></div>
   <div id="admin-tools" style="padding:15px; border-top:1px solid #2a2a4a; display:none">
     <button class="btn btn-ghost" style="width:100%; margin-bottom:10px" onclick="openUserMgmt()">👥 User & Rollen</button>
-    <button class="btn btn-ghost" style="width:100%" onclick="openEventModal()">+ Neues Fest / Kopieren</button>
+    <button class="btn btn-ghost" style="width:100%" onclick="openEventModal()">+ Neues Fest</button>
   </div>
   <div style="padding:15px; background: #050510;">
     <div id="user-info" style="font-size:11px; margin-bottom:10px; color:var(--accent)"></div>
-    <button class="btn btn-danger" style="width:100%" onclick="location.reload()">Abmelden</button>
+    <button class="btn btn-ghost" style="width:100%; color:var(--danger)" onclick="location.reload()">Abmelden</button>
   </div>
 </aside>
 
 <main id="content">
   <header id="header">
     <div class="top-bar">
-      <button onclick="toggleMenu()" style="background:none; border:none; color:white; font-size:24px">☰</button>
+      <button id="menu-btn" onclick="toggleMenu()">☰</button>
       <h2 id="current-event-name" style="font-size:18px">Wähle ein Fest...</h2>
     </div>
     <div class="stats-grid">
@@ -89,9 +125,12 @@
     </div>
   </header>
 
+  <div class="filter-row" id="filter-bar">
+    </div>
+
   <div id="main-scroll">
     <div id="task-list"></div>
-    <button class="btn btn-primary" id="add-btn" onclick="addTask()" style="width:100%; margin-top:20px; position:sticky; bottom:0; display:none">+ Aufgabe hinzufügen</button>
+    <button class="btn btn-primary" id="add-btn" onclick="addTask()" style="width:100%; margin-top:20px; display:none">+ Aufgabe hinzufügen</button>
   </div>
 </main>
 
@@ -99,8 +138,37 @@
   <div class="modal-box">
     <h3>👥 Benutzerverwaltung</h3>
     <div id="user-list-ui" style="margin:15px 0"></div>
+    <input type="text" id="new-u-name" class="form-input" placeholder="Name">
+    <input type="text" id="new-u-pass" class="form-input" placeholder="Passwort">
+    <select id="new-u-role" class="form-input">
+      <option value="3">Standard (eigene)</option><option value="2">Wichtig (alle)</option>
+      <option value="1">Kassierer (alle+Finanzen)</option><option value="0">Admin (alles)</option>
+    </select>
     <button class="btn btn-primary" style="width:100%" onclick="addUser()">Hinzufügen</button>
     <button class="btn btn-ghost" style="width:100%; margin-top:10px" onclick="document.getElementById('user-modal').style.display='none'">Schließen</button>
+  </div>
+</div>
+
+<div id="edit-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:3000; align-items:center; justify-content:center; padding:20px">
+  <div class="modal-box">
+    <h3>Aufgabe bearbeiten</h3>
+    <input type="text" id="ed-title" class="form-input">
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
+      <div><label>Wochen davor</label><input type="number" id="ed-weeks" class="form-input"></div>
+      <div><label>Zuständig</label><select id="ed-assignee" class="form-input"></select></div>
+    </div>
+    <div id="finance-fields">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
+        <div><label>Budget €</label><input type="number" id="ed-cost-p" class="form-input"></div>
+        <div><label>Ist €</label><input type="number" id="ed-cost-i" class="form-input"></div>
+      </div>
+    </div>
+    <textarea id="ed-notes" class="form-input" placeholder="Notizen..."></textarea>
+    <div style="display:flex; gap:10px">
+      <button class="btn btn-danger" onclick="deleteTask()">🗑️</button>
+      <button class="btn btn-ghost" style="flex:1" onclick="document.getElementById('edit-modal').style.display='none'">Abbr.</button>
+      <button class="btn btn-primary" style="flex:1" onclick="saveEdit()">Speichern</button>
+    </div>
   </div>
 </div>
 
@@ -109,35 +177,8 @@
     <h3>Neues Fest</h3>
     <input type="text" id="ev-name" class="form-input" placeholder="Name">
     <input type="date" id="ev-date" class="form-input">
-    <label>Kopieren von:</label>
-    <select id="ev-copy-source" class="form-input"></select>
     <button class="btn btn-primary" style="width:100%" onclick="saveEvent()">Anlegen</button>
     <button class="btn btn-ghost" style="width:100%; margin-top:10px" onclick="document.getElementById('event-modal-ui').style.display='none'">Abbrechen</button>
-  </div>
-</div>
-
-<div id="edit-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:3000; align-items:center; justify-content:center; padding:20px">
-  <div class="modal-box">
-    <h3>Aufgabe bearbeiten</h3>
-    <input type="text" id="ed-title" class="form-input" placeholder="Aufgabe">
-    <label>Zuständig</label>
-    <select id="ed-assignee" class="form-input"></select>
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
-      <div><label>Wochen davor</label><input type="number" id="ed-weeks" class="form-input"></div>
-      <div><label>Kategorie</label><select id="ed-cat" class="form-input">
-        <option value="zelt">⛺ Zelt</option><option value="musik">🎵 Musik</option><option value="amt">🏛️ Amt</option>
-      </select></div>
-    </div>
-    <div id="finance-fields" style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
-      <div><label>Budget €</label><input type="number" id="ed-cost-p" class="form-input"></div>
-      <div><label>Ist €</label><input type="number" id="ed-cost-i" class="form-input"></div>
-    </div>
-    <textarea id="ed-notes" class="form-input" placeholder="Notizen..."></textarea>
-    <div style="display:flex; gap:10px">
-      <button class="btn btn-danger" onclick="deleteTask()">🗑️</button>
-      <button class="btn btn-ghost" style="flex:1" onclick="document.getElementById('edit-modal').style.display='none'">Abbr.</button>
-      <button class="btn btn-primary" style="flex:1" onclick="saveEdit()">Speichern</button>
-    </div>
   </div>
 </div>
 
@@ -154,24 +195,30 @@
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
 
-  let state = { events: {}, users: {}, currentUser: null, currentEventId: null };
+  let state = { events: {}, users: {}, currentUser: null, currentEventId: null, currentFilter: 'all' };
 
-  db.ref('festplaner_v3').on('value', (snap) => {
+  // Sync
+  db.ref('festplaner_v3').on('value', snap => {
     const data = snap.val();
     if(data) {
       state.events = data.events || {};
       state.users = data.users || {};
       render();
-    } else {
-      state.users["admin"] = { name: "admin", pass: "1234", role: 0 };
-      db.ref('festplaner_v3/users').set(state.users);
     }
   });
+
+  function toggleMenu() {
+    const sb = document.getElementById("sidebar");
+    const ov = document.getElementById("overlay");
+    const isHidden = sb.classList.toggle("sidebar-hidden");
+    ov.style.display = isHidden ? "none" : "block";
+  }
 
   function handleLogin() {
     const u = document.getElementById("login-user").value.toLowerCase().trim();
     const p = document.getElementById("login-pass").value.trim();
-    const user = state.users[u];
+    const user = state.users[u] || (u === 'admin' && p === '1234' ? {name:'admin', pass:'1234', role:0} : null);
+    
     if(user && user.pass === p) {
       state.currentUser = user;
       document.getElementById("login-screen").style.display = "none";
@@ -179,14 +226,17 @@
       document.getElementById("user-info").innerHTML = `User: <b>${user.name}</b>`;
       document.getElementById("add-btn").style.display = "block";
       render();
-    } else { document.getElementById("login-msg").textContent = "Falsche Zugangsdaten!"; }
+    } else {
+      document.getElementById("login-msg").textContent = "Falsche Zugangsdaten!";
+    }
   }
 
   function render() {
     if(!state.currentUser) return;
-    const evList = document.getElementById("event-list-ui");
-    evList.innerHTML = Object.entries(state.events).map(([id, ev]) => `
-      <div style="padding:12px; background:#1a1a30; border-radius:10px; margin-bottom:8px; border:1px solid ${id===state.currentEventId?'var(--accent)':'transparent'}; cursor:pointer" onclick="selectEvent('${id}')">
+
+    // Sidebar
+    document.getElementById("event-list-ui").innerHTML = Object.entries(state.events).map(([id, ev]) => `
+      <div style="padding:12px; background:#1a1a30; border-radius:10px; margin-bottom:8px; border:1px solid ${id===state.currentEventId?'var(--accent)':'transparent'}" onclick="selectEvent('${id}')">
         <b>${ev.name}</b>
       </div>
     `).join('');
@@ -195,32 +245,36 @@
     const ev = state.events[state.currentEventId];
     document.getElementById("current-event-name").textContent = ev.name;
 
+    // Filter-Bar
+    const users = [...new Set((ev.tasks || []).map(t => t.assignee).filter(Boolean))];
+    document.getElementById("filter-bar").innerHTML = `<button class="btn ${state.currentFilter==='all'?'btn-primary':'btn-ghost'}" onclick="setFilter('all')">Alle</button>` +
+      users.map(u => `<button class="btn ${state.currentFilter===u?'btn-primary':'btn-ghost'}" onclick="setFilter('${u}')">${u}</button>`).join('');
+
+    // Tasks & Stats
     let tasks = ev.tasks || [];
     if(state.currentUser.role == 3) tasks = tasks.filter(t => t.assignee === state.currentUser.name);
+    const filtered = tasks.filter(t => state.currentFilter === 'all' || t.assignee === state.currentFilter);
 
-    const done = tasks.filter(t => t.done).length;
-    document.getElementById("stat-progress").textContent = (tasks.length ? Math.round(done/tasks.length*100) : 0) + "%";
-    if(state.currentUser.role <= 1) document.getElementById("stat-budget").textContent = tasks.reduce((sum, t) => sum + (parseFloat(t.costI) || 0), 0).toLocaleString() + " €";
+    const done = filtered.filter(t => t.done).length;
+    document.getElementById("stat-progress").textContent = (filtered.length ? Math.round(done/filtered.length*100) : 0) + "%";
     
-    const daysLeft = Math.ceil((new Date(ev.date) - new Date()) / 86400000);
-    document.getElementById("stat-days").textContent = isNaN(daysLeft) ? "-" : daysLeft;
+    if(state.currentUser.role <= 1) {
+      const budget = filtered.reduce((sum, t) => sum + (parseFloat(t.costI) || 0), 0);
+      document.getElementById("stat-budget").textContent = budget.toLocaleString() + " €";
+    }
 
-    document.getElementById("task-list").innerHTML = tasks.sort((a,b) => a.done - b.done).map(t => {
-      // Deadline Berechnung
+    document.getElementById("task-list").innerHTML = filtered.sort((a,b) => a.done - b.done).map(t => {
       const deadline = new Date(new Date(ev.date).getTime() - (t.weeksBefore || 0) * 7 * 86400000);
       const diff = Math.ceil((deadline - new Date()) / 86400000);
+      const statusCls = t.done ? "status-done" : (diff < 0 ? "status-overdue" : (diff <= 7 ? "status-urgent" : ""));
       
-      let statusCls = t.done ? "status-done" : (diff < 0 ? "status-overdue" : (diff <= 7 ? "status-urgent" : ""));
-      let cdLabel = diff < 0 ? `<span class="countdown-label cd-overdue">Überfällig!</span>` : `<span class="countdown-label cd-ok">Noch ${diff} Tage</span>`;
-      if(t.done) cdLabel = `<span class="countdown-label" style="background:var(--safe)">Erledigt</span>`;
-
       return `
         <div class="task-card ${statusCls}">
           <input type="checkbox" ${t.done?'checked':''} onchange="toggleTask(${t.id})" style="width:24px; height:24px">
           <div class="task-info" onclick="openEdit(${t.id})">
             <div style="font-weight:bold">${t.title}</div>
             <div style="font-size:11px; color:#7070a0">👤 ${t.assignee || 'Offen'}</div>
-            ${cdLabel}
+            <span class="cd-badge ${diff<0?'cd-overdue':''}">${t.done?'Erledigt':(diff<0?'Überfällig!':'Noch '+diff+' Tg.')}</span>
           </div>
           <span onclick="openEdit(${t.id})" style="font-size:20px">✏️</span>
         </div>
@@ -228,13 +282,17 @@
     }).join('');
   }
 
-  function toggleMenu() { 
-    const isHidden = document.getElementById("sidebar").classList.toggle("sidebar-hidden");
-    document.getElementById("overlay").style.display = isHidden ? "none" : "block"; 
-  }
   function selectEvent(id) { state.currentEventId = id; render(); toggleMenu(); }
+  function setFilter(f) { state.currentFilter = f; render(); }
 
-  let activeTaskId = null;
+  function addTask() {
+    const id = Date.now();
+    if(!state.events[state.currentEventId].tasks) state.events[state.currentEventId].tasks = [];
+    state.events[state.currentEventId].tasks.push({ id, title: "Neue Aufgabe", assignee: "", done: false, weeksBefore: 1 });
+    db.ref('festplaner_v3/events').set(state.events);
+    openEdit(id);
+  }
+
   function openEdit(id) {
     activeTaskId = id;
     const t = state.events[state.currentEventId].tasks.find(x => x.id === id);
@@ -243,7 +301,7 @@
     document.getElementById("ed-cost-p").value = t.costP || 0;
     document.getElementById("ed-cost-i").value = t.costI || 0;
     document.getElementById("ed-notes").value = t.notes || "";
-    document.getElementById("finance-fields").style.display = (state.currentUser.role <= 1) ? "grid" : "none";
+    document.getElementById("finance-fields").style.display = (state.currentUser.role <= 1) ? "block" : "none";
     
     const sel = document.getElementById("ed-assignee");
     sel.innerHTML = '<option value="">Offen</option>' + Object.values(state.users).map(u => `<option value="${u.name}" ${t.assignee===u.name?'selected':''}>${u.name}</option>`).join('');
@@ -261,27 +319,41 @@
     document.getElementById("edit-modal").style.display = "none";
   }
 
-  function addTask() {
-    const id = Date.now();
-    if(!state.currentEventId) return alert("Wähle ein Fest");
-    if(!state.events[state.currentEventId].tasks) state.events[state.currentEventId].tasks = [];
-    state.events[state.currentEventId].tasks.push({ id, title: "Neue Aufgabe", assignee: "", done: false, weeksBefore: 1 });
-    db.ref('festplaner_v3/events').set(state.events);
-    openEdit(id);
-  }
-
   function toggleTask(id) {
     const t = state.events[state.currentEventId].tasks.find(x => x.id === id);
     t.done = !t.done;
     db.ref('festplaner_v3/events').set(state.events);
   }
 
-  function handleLogin() { /* ... wie oben ... */ }
-  function openUserMgmt() { /* ... wie oben ... */ }
-  function addUser() { /* ... wie oben ... */ }
-  function saveEvent() { /* ... wie oben ... */ }
-  function openEventModal() { /* ... wie oben ... */ }
-  function deleteTask() { /* ... wie oben ... */ }
+  function openUserMgmt() {
+    document.getElementById("user-modal").style.display = "flex";
+    document.getElementById("user-list-ui").innerHTML = Object.values(state.users).map(u => `
+      <div style="display:flex; justify-content:space-between; margin-bottom:5px; background:#0a0a15; padding:8px; border-radius:5px">
+        <span>${u.name} (Lvl ${u.role})</span>
+        <button onclick="deleteUser('${u.name}')" style="color:red; background:none; border:none">X</button>
+      </div>
+    `).join('');
+  }
+
+  function addUser() {
+    const name = document.getElementById("new-u-name").value.toLowerCase().trim();
+    const pass = document.getElementById("new-u-pass").value.trim();
+    const role = document.getElementById("new-u-role").value;
+    if(!name || !pass) return;
+    state.users[name] = { name, pass, role: parseInt(role) };
+    db.ref('festplaner_v3/users').set(state.users);
+    openUserMgmt();
+  }
+
+  function saveEvent() {
+    const name = document.getElementById("ev-name").value;
+    const date = document.getElementById("ev-date").value;
+    if(!name || !date) return alert("Daten fehlen");
+    const id = "ev_" + Date.now();
+    state.events[id] = { name, date, tasks: [] };
+    db.ref('festplaner_v3/events').set(state.events);
+    document.getElementById("event-modal-ui").style.display = "none";
+  }
 </script>
 </body>
 </html>
