@@ -35,13 +35,19 @@
   
   .btn-add { padding: 12px 24px; border-radius: 25px; font-size: 14px; font-weight: bold; cursor: pointer; background: #2a4a2a; border: 1px solid #4a8a4a; color: #a0e0a0; }
 
-  /* Task Cards */
+  /* Task Cards & Dynamic Colors */
   #task-list { display: flex; flex-direction: column; gap: 12px; }
-  .task-card { background: #0f0f20; border-radius: 12px; padding: 16px; border: 1px solid #252545; }
-  .task-card.done-card { opacity: 0.5; }
+  .task-card { background: #0f0f20; border-radius: 12px; padding: 16px; border: 1px solid #252545; border-left: 5px solid #3a3a6a; }
+  
+  .status-overdue { border-left-color: #ff4444; background: #201010; } /* Rot */
+  .status-urgent { border-left-color: #ffbb33; background: #201a10; }  /* Gelb */
+  .status-done { opacity: 0.5; border-left-color: #00c851; background: #0a0a10; } /* Grün/Grau */
+
   .task-main { display: flex; gap: 15px; }
   .task-info { flex: 1; }
-  .task-title { font-size: 17px; margin-bottom: 4px; }
+  .task-title { font-size: 17px; margin-bottom: 4px; font-weight: 500; }
+  .days-label { font-size: 11px; font-weight: bold; text-transform: uppercase; margin-bottom: 4px; display: block; }
+  
   .assignee-badge { color: #c8a45a; font-weight: bold; border: 1px solid #c8a45a44; padding: 2px 8px; border-radius: 6px; display: inline-block; margin-top: 8px; font-size: 12px; }
 
   /* Modals */
@@ -109,11 +115,22 @@
 <div class="modal-overlay" id="edit-modal">
   <div class="modal-box">
     <h3>✏️ Aufgabe bearbeiten</h3>
-    <input type="text" id="edit-title" class="form-input" placeholder="Titel">
-    <input type="text" id="edit-assignee" class="form-input" placeholder="Wer macht's? (Name)">
-    <select id="edit-cat" class="form-input"></select>
-    <input type="number" id="edit-weeks" class="form-input" placeholder="Wochen davor">
-    <textarea id="edit-notes" class="form-input" rows="3" placeholder="Notizen"></textarea>
+    <label style="font-size: 11px;">TITEL</label>
+    <input type="text" id="edit-title" class="form-input">
+    <label style="font-size: 11px;">ZUSTÄNDIG</label>
+    <input type="text" id="edit-assignee" class="form-input" placeholder="Name">
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px">
+      <div>
+        <label style="font-size: 11px;">KATEGORIE</label>
+        <select id="edit-cat" class="form-input"></select>
+      </div>
+      <div>
+        <label style="font-size: 11px;">WOCHEN DAVOR</label>
+        <input type="number" id="edit-weeks" class="form-input">
+      </div>
+    </div>
+    <label style="font-size: 11px;">NOTIZEN</label>
+    <textarea id="edit-notes" class="form-input" rows="3"></textarea>
     <div style="display:flex; gap:10px;">
       <button class="btn-add" style="flex:1; background:#333;" onclick="closeEdit()">Abbrechen</button>
       <button class="btn-add" style="flex:1" onclick="saveEdit()">Speichern</button>
@@ -155,8 +172,7 @@
   };
 
   function checkLogin() {
-    const input = document.getElementById("login-pass").value;
-    if(input === state.config.pass) {
+    if(document.getElementById("login-pass").value === state.config.pass) {
       document.getElementById("login-screen").style.display = "none";
     } else {
       document.getElementById("login-msg").textContent = "Falsches Passwort!";
@@ -182,40 +198,55 @@
     document.getElementById("fest-date-label").textContent = fDate.toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' });
 
     const persons = [...new Set(state.tasks.map(t => t.assignee).filter(n => n))].sort();
-    const pSel = document.getElementById("person-filter");
-    const currentP = state.filterPerson;
-    pSel.innerHTML = '<option value="all">👤 Alle Personen</option>' + 
-      persons.map(p => `<option value="${p}" ${p===currentP?'selected':''}>${p}</option>`).join('');
+    document.getElementById("person-filter").innerHTML = '<option value="all">👤 Alle Personen</option>' + 
+      persons.map(p => `<option value="${p}" ${p===state.filterPerson?'selected':''}>${p}</option>`).join('');
 
     const list = document.getElementById("task-list");
-    const filtered = state.tasks.filter(t => {
-      const catMatch = state.filterCat === "all" || t.cat === state.filterCat;
-      const personMatch = state.filterPerson === "all" || t.assignee === state.filterPerson;
-      return catMatch && personMatch;
-    });
+    const filtered = state.tasks.filter(t => (state.filterCat === "all" || t.cat === state.filterCat) && (state.filterPerson === "all" || t.assignee === state.filterPerson));
 
     filtered.sort((a,b) => a.done - b.done || b.weeksBefore - a.weeksBefore);
 
+    const now = new Date();
     list.innerHTML = filtered.map(t => {
-      const d = new Date(fDate.getTime() - t.weeksBefore * 7 * 86400000);
+      const deadline = new Date(fDate.getTime() - t.weeksBefore * 7 * 86400000);
+      const diffDays = Math.ceil((deadline - now) / (1000 * 60 * 60 * 24));
+      
+      let statusClass = "";
+      let dayText = diffDays < 0 ? `${Math.abs(diffDays)} Tage überfällig` : `Noch ${diffDays} Tage`;
+      let dayColor = "#7070a0";
+
+      if (t.done) {
+        statusClass = "status-done";
+        dayText = "Erledigt";
+      } else if (diffDays < 0) {
+        statusClass = "status-overdue";
+        dayColor = "#ff4444";
+      } else if (diffDays <= 7) {
+        statusClass = "status-urgent";
+        dayColor = "#ffbb33";
+      }
+
       return `
-        <div class="task-card ${t.done ? 'done-card' : ''}">
+        <div class="task-card ${statusClass}">
           <div class="task-main">
             <input type="checkbox" ${t.done ? 'checked' : ''} onchange="toggleTask(${t.id})">
             <div class="task-info">
+              <span class="days-label" style="color:${dayColor}">${dayText}</span>
               <div class="task-title ${t.done ? 'done-title' : ''}">${t.title}</div>
-              <div class="task-sub">${CATEGORIES[t.cat] ? CATEGORIES[t.cat].icon : '📝'} • ${d.toLocaleDateString('de-DE')}</div>
+              <div class="task-sub">${CATEGORIES[t.cat].icon} • Fällig: ${deadline.toLocaleDateString('de-DE')}</div>
               ${t.assignee ? `<div class="assignee-badge">👤 ${t.assignee}</div>` : ''}
             </div>
-            <button onclick="openEdit(${t.id})" style="background:none;border:none;cursor:pointer;">✏️</button>
-            <button onclick="deleteTask(${t.id})" style="background:none;border:none;cursor:pointer;">🗑️</button>
+            <div style="display:flex; flex-direction:column; gap:10px;">
+                <button onclick="openEdit(${t.id})" style="background:none;border:none;cursor:pointer;font-size:18px;">✏️</button>
+                <button onclick="deleteTask(${t.id})" style="background:none;border:none;cursor:pointer;font-size:18px;">🗑️</button>
+            </div>
           </div>
         </div>`;
     }).join('');
 
     const done = state.tasks.filter(t => t.done).length;
     const pct = state.tasks.length ? Math.round(done/state.tasks.length*100) : 0;
-    document.getElementById("progress-text").textContent = `${done} von ${state.tasks.length} erledigt`;
+    document.getElementById("progress-text").textContent = `${done}/${state.tasks.length}`;
     document.getElementById("progress-bar").style.width = pct + "%";
     document.getElementById("progress-pct").textContent = pct + "%";
 
@@ -245,31 +276,3 @@
     t.title = document.getElementById("edit-title").value;
     t.assignee = document.getElementById("edit-assignee").value;
     t.weeksBefore = parseInt(document.getElementById("edit-weeks").value) || 0;
-    t.cat = document.getElementById("edit-cat").value;
-    t.notes = document.getElementById("edit-notes").value;
-    sync(); closeEdit();
-  };
-
-  window.addTask = () => {
-    const id = Date.now();
-    state.tasks.push({ id, title: "Neue Aufgabe", assignee: "", cat: "werbung", weeksBefore: 8, done: false, notes: "" });
-    sync(); openEdit(id);
-  };
-
-  window.openSettings = () => {
-    document.getElementById("set-name").value = state.config.name;
-    document.getElementById("set-date").value = state.config.date;
-    document.getElementById("set-pass").value = "";
-    document.getElementById("settings-modal").style.display = "flex";
-  };
-  window.closeSettings = () => document.getElementById("settings-modal").style.display = "none";
-  window.saveSettings = () => {
-    state.config.name = document.getElementById("set-name").value;
-    state.config.date = document.getElementById("set-date").value;
-    const newPass = document.getElementById("set-pass").value;
-    if(newPass) state.config.pass = newPass;
-    sync(); closeSettings();
-  };
-</script>
-</body>
-</html>
