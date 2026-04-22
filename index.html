@@ -47,7 +47,7 @@
   .cd-badge { font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 4px; background: #3a3a6a; color: #fff; }
 
   /* UI Elements */
-  .btn { padding: 10px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; font-size: 13px; }
+  .btn { padding: 10px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; font-size: 13px; text-align: center; }
   .btn-primary { background: var(--accent); color: #000; }
   .btn-ghost { background: #1a1a30; color: #fff; border: 1px solid #3a3a6a; }
   .btn-danger { background: var(--danger); color: #fff; }
@@ -96,7 +96,7 @@
     </div>
     <div class="stats-grid">
       <div class="stat-card"><span class="stat-lbl">Fortschritt</span><span class="stat-val" id="stat-progress">0%</span></div>
-      <div class="stat-card"><span class="stat-lbl">Kosten Ist</span><span class="stat-val" id="stat-budget">***</span></div>
+      <div class="stat-card"><span class="stat-lbl">Kosten Ist</span><span class="stat-val" id="stat-budget">0 €</span></div>
       <div class="stat-card"><span class="stat-lbl">Tage</span><span class="stat-val" id="stat-days">-</span></div>
     </div>
   </header>
@@ -111,6 +111,25 @@
     <button class="btn btn-primary" id="add-btn" onclick="addTask()" style="width:100%; margin-top:20px; display:none; position:sticky; bottom:0">+ Aufgabe hinzufügen</button>
   </div>
 </main>
+
+<div id="user-mgmt-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:3500; align-items:center; justify-content:center; padding:20px">
+  <div class="modal-box">
+    <h3>👥 Benutzerverwaltung</h3>
+    <div id="user-list-admin" style="margin:15px 0; max-height:200px; overflow-y:auto; border:1px solid #3a3a6a; padding:10px; border-radius:10px"></div>
+    <hr style="border:0; border-top:1px solid #3a3a6a; margin:15px 0">
+    <h4>Neuer Benutzer</h4>
+    <input type="text" id="new-u-name" class="form-input" placeholder="Name">
+    <input type="text" id="new-u-pass" class="form-input" placeholder="Passwort">
+    <select id="new-u-role" class="form-input">
+      <option value="1">Planer (Vollzugriff)</option>
+      <option value="2">Helfer (Nur Status ändern)</option>
+    </select>
+    <div style="display:flex; gap:10px">
+      <button class="btn btn-ghost" style="flex:1" onclick="document.getElementById('user-mgmt-modal').style.display='none'">Schließen</button>
+      <button class="btn btn-primary" style="flex:1" onclick="createNewUser()">Hinzufügen</button>
+    </div>
+  </div>
+</div>
 
 <div id="event-edit-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:3000; align-items:center; justify-content:center; padding:20px">
   <div class="modal-box">
@@ -195,15 +214,20 @@
   function handleLogin() {
     const u = document.getElementById("login-user").value.toLowerCase().trim();
     const p = document.getElementById("login-pass").value.trim();
-    const user = state.users[u] || (u === 'admin' && p === '1234' ? {name:'admin', pass:'1234', role:0} : null);
+    
+    // Admin Master-Login oder User aus DB
+    const user = (u === 'admin' && p === '1234') ? {name:'admin', pass:'1234', role:0} : state.users[u];
+
     if(user && user.pass === p) {
       state.currentUser = user;
-      state.userFilter = user.name;
+      state.userFilter = (user.role == 0) ? 'all' : user.name;
       document.getElementById("login-screen").style.display = "none";
       if(user.role == 0) document.getElementById("admin-tools").style.display = "block";
-      document.getElementById("user-info").innerHTML = `User: <b>${user.name}</b>`;
-      document.getElementById("add-btn").style.display = "block";
+      document.getElementById("user-info").innerHTML = `User: <b>${user.name}</b> (${user.role==0?'Admin':'Planer'})`;
+      document.getElementById("add-btn").style.display = (user.role <= 1) ? "block" : "none";
       render();
+    } else {
+      alert("Login fehlgeschlagen!");
     }
   }
 
@@ -211,29 +235,34 @@
     if(!state.currentUser) return;
 
     // Sidebar
-    document.getElementById("event-list-ui").innerHTML = Object.entries(state.events).map(([id, ev]) => `
-      <div style="padding:12px; background:#1a1a30; border-radius:10px; margin-bottom:8px; border:1px solid ${id===state.currentEventId?'var(--accent)':'transparent'}" onclick="selectEvent('${id}')">
+    const evEntries = Object.entries(state.events);
+    document.getElementById("event-list-ui").innerHTML = evEntries.map(([id, ev]) => `
+      <div style="padding:12px; background:#1a1a30; border-radius:10px; margin-bottom:8px; cursor:pointer; border:1px solid ${id===state.currentEventId?'var(--accent)':'transparent'}" onclick="selectEvent('${id}')">
         <b>${ev.name}</b>
       </div>
     `).join('');
+
+    if(!state.currentEventId && evEntries.length > 0) {
+        state.currentEventId = evEntries[0][0];
+    }
 
     if(!state.currentEventId) return;
     const ev = state.events[state.currentEventId];
     document.getElementById("current-event-name").textContent = ev.name;
     document.getElementById("admin-ev-edit").style.display = (state.currentUser.role == 0) ? "block" : "none";
 
-    // Compact Cat Filter
+    // Filter
     let catHtml = `<div class="icon-filter ${state.catFilter==='all'?'active':''}" onclick="state.catFilter='all';render()">ALL</div>`;
     Object.entries(CATEGORIES).forEach(([key, cat]) => {
       catHtml += `<div class="icon-filter ${state.catFilter===key?'active':''}" onclick="state.catFilter='${key}';render()">${cat.icon}</div>`;
     });
     document.getElementById("cat-filters").innerHTML = catHtml;
 
-    // User Filter
     const activeUsers = [...new Set((ev.tasks || []).map(t => t.assignee).filter(Boolean))];
     let userHtml = `<div class="user-filter ${state.userFilter==='all'?'active':''}" onclick="state.userFilter='all';render()">Alle</div>`;
-    userHtml += `<div class="user-filter ${state.userFilter===state.currentUser.name?'active':''}" onclick="state.userFilter='${state.currentUser.name}';render()">✨ Meine</div>`;
-    activeUsers.forEach(u => { if(u !== state.currentUser.name) userHtml += `<div class="user-filter ${state.userFilter===u?'active':''}" onclick="state.userFilter='${u}';render()">${u}</div>`; });
+    activeUsers.forEach(u => {
+        userHtml += `<div class="user-filter ${state.userFilter===u?'active':''}" onclick="state.userFilter='${u}';render()">${u === state.currentUser.name ? '✨ Ich' : u}</div>`;
+    });
     document.getElementById("user-filters").innerHTML = userHtml;
 
     let tasks = ev.tasks || [];
@@ -241,10 +270,11 @@
     if(state.userFilter !== 'all') tasks = tasks.filter(t => t.assignee === state.userFilter);
 
     // Stats
-    document.getElementById("stat-progress").textContent = (tasks.length ? Math.round(tasks.filter(t=>t.done).length/tasks.length*100) : 0) + "%";
-    if(state.currentUser.role <= 1) document.getElementById("stat-budget").textContent = tasks.reduce((sum, t) => sum + (parseFloat(t.costI) || 0), 0).toLocaleString() + " €";
+    const doneCount = tasks.filter(t=>t.done).length;
+    document.getElementById("stat-progress").textContent = (tasks.length ? Math.round(doneCount/tasks.length*100) : 0) + "%";
+    document.getElementById("stat-budget").textContent = tasks.reduce((sum, t) => sum + (parseFloat(t.costI) || 0), 0).toLocaleString() + " €";
     const dLeft = ev.date ? Math.ceil((new Date(ev.date) - new Date()) / 86400000) : null;
-    document.getElementById("stat-days").textContent = dLeft || "-";
+    document.getElementById("stat-days").textContent = dLeft !== null ? dLeft : "-";
 
     // Task Cards
     document.getElementById("task-list").innerHTML = tasks.sort((a,b) => a.done - b.done).map(t => {
@@ -258,12 +288,43 @@
             <div style="font-weight:bold">${t.title}</div>
             <div style="font-size:11px; color:#7070a0">${t.assignee || 'Offen'} • <span class="cd-badge">${t.done?'Erledigt':(diff<0?'Überfällig!':'Noch '+diff+' Tg.')}</span></div>
           </div>
-          <span onclick="openEdit(${t.id})">✏️</span>
+          <span onclick="openEdit(${t.id})" style="cursor:pointer">✏️</span>
         </div>`;
     }).join('');
   }
 
+  // --- USER MGMT ---
+  function openUserMgmt() {
+    const list = document.getElementById("user-list-admin");
+    list.innerHTML = Object.values(state.users).map(u => `
+      <div style="display:flex; justify-content:space-between; margin-bottom:5px; padding:5px; background:#1a1a30; border-radius:5px">
+        <span>${u.name} (${u.role==1?'P':'H'})</span>
+        <button onclick="deleteUser('${u.name}')" style="background:none; border:none; color:red; cursor:pointer">✖</button>
+      </div>
+    `).join('') || "Keine User angelegt.";
+    document.getElementById("user-mgmt-modal").style.display = "flex";
+  }
+
+  function createNewUser() {
+    const name = document.getElementById("new-u-name").value.toLowerCase().trim();
+    const pass = document.getElementById("new-u-pass").value.trim();
+    const role = parseInt(document.getElementById("new-u-role").value);
+    if(!name || !pass) return;
+    db.ref('festplaner_v3/users/' + name).set({name, pass, role}).then(() => {
+        document.getElementById("new-u-name").value = "";
+        document.getElementById("new-u-pass").value = "";
+        openUserMgmt();
+    });
+  }
+
+  function deleteUser(name) {
+    if(confirm(name + " löschen?")) db.ref('festplaner_v3/users/' + name).remove().then(openUserMgmt);
+  }
+
   // --- EVENT ACTIONS ---
+  function selectEvent(id) { state.currentEventId = id; render(); if(window.innerWidth < 1024) toggleMenu(); }
+  function toggleMenu() { document.getElementById("sidebar").classList.toggle("sidebar-hidden"); document.getElementById("overlay").style.display = document.getElementById("sidebar").classList.contains("sidebar-hidden") ? "none" : "block"; }
+  
   function openEventEdit() {
     const ev = state.events[state.currentEventId];
     document.getElementById("ev-edit-name").value = ev.name;
@@ -286,7 +347,7 @@
     const newId = "ev_" + Date.now();
     const tasks = (orig.tasks || []).map(t => ({ ...t, done: false, costI: 0 }));
     db.ref('festplaner_v3/events/' + newId).set({ name: newName, date: orig.date || "", tasks })
-      .then(() => { alert("Kopiert!"); document.getElementById("event-edit-modal").style.display = "none"; });
+      .then(() => { state.currentEventId = newId; document.getElementById("event-edit-modal").style.display = "none"; });
   }
 
   function deleteEvent() {
@@ -299,6 +360,7 @@
 
   // --- TASK ACTIONS ---
   function openEdit(id) {
+    if(state.currentUser.role > 1) { alert("Nur für Planer/Admins!"); return; }
     activeTaskId = id;
     const t = state.events[state.currentEventId].tasks.find(x => x.id === id);
     document.getElementById("ed-title").value = t.title || "";
@@ -306,25 +368,26 @@
     document.getElementById("ed-cost-i").value = t.costI || 0;
     document.getElementById("ed-notes").value = t.notes || "";
     document.getElementById("ed-cat").innerHTML = Object.entries(CATEGORIES).map(([k,c]) => `<option value="${k}" ${t.category===k?'selected':''}>${c.icon} ${c.label}</option>`).join('');
-    document.getElementById("ed-assignee").innerHTML = '<option value="">Offen</option>' + Object.values(state.users).map(u => `<option value="${u.name}" ${t.assignee===u.name?'selected':''}>${u.name}</option>`).join('');
+    document.getElementById("ed-assignee").innerHTML = '<option value="">Offen</option>' + 
+        Object.values(state.users).map(u => `<option value="${u.name}" ${t.assignee===u.name?'selected':''}>${u.name}</option>`).join('');
     document.getElementById("edit-modal").style.display = "flex";
   }
 
   function saveEdit() {
-    const tasks = state.events[state.currentEventId].tasks;
+    const tasks = [...(state.events[state.currentEventId].tasks || [])];
     const idx = tasks.findIndex(x => x.id === activeTaskId);
     tasks[idx].title = document.getElementById("ed-title").value;
     tasks[idx].category = document.getElementById("ed-cat").value;
     tasks[idx].weeksBefore = parseInt(document.getElementById("ed-weeks").value) || 0;
     tasks[idx].assignee = document.getElementById("ed-assignee").value;
     tasks[idx].notes = document.getElementById("ed-notes").value;
-    tasks[idx].costI = document.getElementById("ed-cost-i").value;
+    tasks[idx].costI = parseFloat(document.getElementById("ed-cost-i").value) || 0;
     db.ref('festplaner_v3/events/' + state.currentEventId + '/tasks').set(tasks);
     document.getElementById("edit-modal").style.display = "none";
   }
 
   function toggleTask(id) {
-    const tasks = state.events[state.currentEventId].tasks;
+    const tasks = [...(state.events[state.currentEventId].tasks || [])];
     const idx = tasks.findIndex(x => x.id === id);
     tasks[idx].done = !tasks[idx].done;
     db.ref('festplaner_v3/events/' + state.currentEventId + '/tasks').set(tasks);
@@ -346,15 +409,15 @@
     }
   }
 
-  // --- GLOBALS ---
-  function selectEvent(id) { state.currentEventId = id; render(); toggleMenu(); }
-  function toggleMenu() { document.getElementById("sidebar").classList.toggle("sidebar-hidden"); document.getElementById("overlay").style.display = document.getElementById("sidebar").classList.contains("sidebar-hidden") ? "none" : "block"; }
   function saveNewEvent() {
     const name = document.getElementById("ev-name").value;
     const date = document.getElementById("ev-date").value;
     if(!name) return;
-    db.ref('festplaner_v3/events/' + "ev_" + Date.now()).set({ name, date, tasks: [] });
-    document.getElementById("event-modal-ui").style.display = "none";
+    const newId = "ev_" + Date.now();
+    db.ref('festplaner_v3/events/' + newId).set({ name, date, tasks: [] }).then(() => {
+        state.currentEventId = newId;
+        document.getElementById("event-modal-ui").style.display = "none";
+    });
   }
   function openEventModal() { document.getElementById("event-modal-ui").style.display = "flex"; }
 </script>
