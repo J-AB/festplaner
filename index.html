@@ -7,82 +7,46 @@
 <style>
   :root { --bg: #0d0d14; --panel: #16213e; --accent: #c8a45a; --text: #e8e8f0; --danger: #ff4444; --warning: #ffbb33; --safe: #00c851; }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-  
-  body { 
-    background: var(--bg); 
-    color: var(--text); 
-    font-family: -apple-system, system-ui, sans-serif; 
-    display: flex; 
-    height: 100dvh; 
-    overflow: hidden; 
-  }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, sans-serif; display: flex; height: 100dvh; overflow: hidden; }
 
-  /* Sidebar & Overlay */
-  #sidebar { 
-    width: 280px; 
-    background: #0a0a15; 
-    border-right: 1px solid #2a2a4a; 
-    display: flex; 
-    flex-direction: column; 
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
-    position: absolute; top: 0; bottom: 0; left: 0; z-index: 2000;
-  }
+  /* Sidebar */
+  #sidebar { width: 280px; background: #0a0a15; border-right: 1px solid #2a2a4a; display: flex; flex-direction: column; transition: transform 0.3s ease; position: absolute; top: 0; bottom: 0; left: 0; z-index: 2000; }
   .sidebar-hidden { transform: translateX(-100%); }
-  
-  #overlay { 
-    position: fixed; inset: 0; background: rgba(0,0,0,0.7); 
-    display: none; z-index: 1500; 
-  }
+  #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; z-index: 1500; }
 
-  /* Main Content */
+  /* Header & Filter */
   #content { flex: 1; display: flex; flex-direction: column; width: 100%; min-width: 0; }
   #header { background: linear-gradient(135deg,#1a1a2e, #0f3460); padding: 15px; border-bottom: 1px solid #2a2a5a; }
-  
   .top-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
-  #menu-btn { background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
+  .filter-row { display: flex; gap: 8px; padding: 10px; overflow-x: auto; background: #0a0a15; border-bottom: 1px solid #252545; scrollbar-width: none; }
+  .filter-row::-webkit-scrollbar { display: none; }
 
+  /* Stats */
   .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
   .stat-card { background: rgba(255,255,255,0.05); padding: 10px; border-radius: 10px; text-align: center; }
   .stat-val { display: block; font-size: 14px; font-weight: bold; color: var(--accent); }
   .stat-lbl { font-size: 9px; color: #7070a0; }
 
-  /* Filter-Leiste */
-  .filter-row { 
-    display: flex; gap: 8px; padding: 10px 15px; 
-    overflow-x: auto; white-space: nowrap; 
-    border-bottom: 1px solid #252545;
-  }
-  .filter-row::-webkit-scrollbar { display: none; }
-
   /* Task Cards */
-  #main-scroll { flex: 1; overflow-y: auto; padding: 15px; -webkit-overflow-scrolling: touch; }
-  .task-card { 
-    background: #0f0f20; border-radius: 14px; padding: 15px; 
-    border: 1px solid #252545; border-left: 5px solid #3a3a6a; 
-    margin-bottom: 10px; display: flex; align-items: center; gap: 12px;
-  }
+  #main-scroll { flex: 1; overflow-y: auto; padding: 15px; }
+  .task-card { background: #0f0f20; border-radius: 14px; padding: 15px; border: 1px solid #252545; border-left: 5px solid #3a3a6a; margin-bottom: 10px; display: flex; align-items: center; gap: 12px; }
   .status-overdue { border-left-color: var(--danger); background: #251515; }
   .status-urgent { border-left-color: var(--warning); background: #252015; }
   .status-done { opacity: 0.4; border-left-color: var(--safe); }
 
-  .task-info { flex: 1; min-width: 0; }
+  .cat-icon-box { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
   .cd-badge { font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-top: 4px; background: #3a3a6a; color: white; }
-  .cd-overdue { background: var(--danger); }
 
-  /* UI & Modals */
-  .btn { padding: 10px 15px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; }
+  /* UI Buttons */
+  .btn { padding: 8px 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; white-space: nowrap; font-size: 13px; }
   .btn-primary { background: var(--accent); color: #000; }
   .btn-ghost { background: #1a1a30; color: #fff; border: 1px solid #3a3a6a; }
-  .form-input { width: 100%; background: #0d0d1a; border: 1px solid #3a3a6a; border-radius: 10px; color: #fff; padding: 12px; margin-bottom: 12px; font-size: 16px; }
 
+  .form-input { width: 100%; background: #0d0d1a; border: 1px solid #3a3a6a; border-radius: 10px; color: #fff; padding: 12px; margin-bottom: 12px; font-size: 16px; }
   #login-screen { position: fixed; inset: 0; background: var(--bg); z-index: 4000; display: flex; align-items: center; justify-content: center; padding: 20px; }
   .modal-box { background: #12121f; border: 1px solid #3a3a6a; border-radius: 20px; padding: 25px; width: 100%; max-width: 450px; max-height: 85vh; overflow-y: auto; }
 
-  @media (min-width: 1024px) {
-    #sidebar { position: relative; transform: none; }
-    #overlay { display: none !important; }
-    #menu-btn { display: none; }
-  }
+  @media (min-width: 1024px) { #sidebar { position: relative; transform: none; } #overlay { display: none !important; } }
 </style>
 </head>
 <body>
@@ -115,60 +79,65 @@
 <main id="content">
   <header id="header">
     <div class="top-bar">
-      <button id="menu-btn" onclick="toggleMenu()">☰</button>
-      <h2 id="current-event-name" style="font-size:18px">Wähle ein Fest...</h2>
+      <button onclick="toggleMenu()" style="background:none; border:none; color:white; font-size:24px">☰</button>
+      <h2 id="current-event-name">Wähle ein Fest...</h2>
     </div>
     <div class="stats-grid">
       <div class="stat-card"><span class="stat-lbl">Fortschritt</span><span class="stat-val" id="stat-progress">0%</span></div>
-      <div class="stat-card"><span class="stat-lbl">Kosten (Ist)</span><span class="stat-val" id="stat-budget">***</span></div>
+      <div class="stat-card"><span class="stat-lbl">Kosten Ist</span><span class="stat-val" id="stat-budget">***</span></div>
       <div class="stat-card"><span class="stat-lbl">Tage</span><span class="stat-val" id="stat-days">-</span></div>
     </div>
   </header>
 
-  <div class="filter-row" id="filter-bar">
-    </div>
+  <div class="filter-row" id="category-filters"></div>
 
   <div id="main-scroll">
     <div id="task-list"></div>
-    <button class="btn btn-primary" id="add-btn" onclick="addTask()" style="width:100%; margin-top:20px; display:none">+ Aufgabe hinzufügen</button>
+    <button class="btn btn-primary" id="add-btn" onclick="addTask()" style="width:100%; margin-top:20px; display:none; position:sticky; bottom:0">+ Aufgabe hinzufügen</button>
   </div>
 </main>
-
-<div id="user-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:3000; align-items:center; justify-content:center; padding:20px">
-  <div class="modal-box">
-    <h3>👥 Benutzerverwaltung</h3>
-    <div id="user-list-ui" style="margin:15px 0"></div>
-    <input type="text" id="new-u-name" class="form-input" placeholder="Name">
-    <input type="text" id="new-u-pass" class="form-input" placeholder="Passwort">
-    <select id="new-u-role" class="form-input">
-      <option value="3">Standard (eigene)</option><option value="2">Wichtig (alle)</option>
-      <option value="1">Kassierer (alle+Finanzen)</option><option value="0">Admin (alles)</option>
-    </select>
-    <button class="btn btn-primary" style="width:100%" onclick="addUser()">Hinzufügen</button>
-    <button class="btn btn-ghost" style="width:100%; margin-top:10px" onclick="document.getElementById('user-modal').style.display='none'">Schließen</button>
-  </div>
-</div>
 
 <div id="edit-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:3000; align-items:center; justify-content:center; padding:20px">
   <div class="modal-box">
     <h3>Aufgabe bearbeiten</h3>
-    <input type="text" id="ed-title" class="form-input">
+    <input type="text" id="ed-title" class="form-input" placeholder="Was ist zu tun?">
+    
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
-      <div><label>Wochen davor</label><input type="number" id="ed-weeks" class="form-input"></div>
+      <div><label>Kategorie</label>
+        <select id="ed-cat" class="form-input"></select>
+      </div>
       <div><label>Zuständig</label><select id="ed-assignee" class="form-input"></select></div>
     </div>
-    <div id="finance-fields">
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
-        <div><label>Budget €</label><input type="number" id="ed-cost-p" class="form-input"></div>
-        <div><label>Ist €</label><input type="number" id="ed-cost-i" class="form-input"></div>
-      </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
+      <div><label>Wochen davor</label><input type="number" id="ed-weeks" class="form-input"></div>
+      <div id="finance-field"><label>Ist Kosten €</label><input type="number" id="ed-cost-i" class="form-input"></div>
     </div>
+
     <textarea id="ed-notes" class="form-input" placeholder="Notizen..."></textarea>
+    
     <div style="display:flex; gap:10px">
       <button class="btn btn-danger" onclick="deleteTask()">🗑️</button>
       <button class="btn btn-ghost" style="flex:1" onclick="document.getElementById('edit-modal').style.display='none'">Abbr.</button>
       <button class="btn btn-primary" style="flex:1" onclick="saveEdit()">Speichern</button>
     </div>
+  </div>
+</div>
+
+<div id="user-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:3000; align-items:center; justify-content:center; padding:20px">
+  <div class="modal-box">
+    <h3>👥 User & Rollen</h3>
+    <div id="user-list-ui" style="margin-bottom:15px"></div>
+    <input type="text" id="new-u-name" class="form-input" placeholder="Name">
+    <input type="text" id="new-u-pass" class="form-input" placeholder="Passwort">
+    <select id="new-u-role" class="form-input">
+      <option value="3">Standard (eigene)</option>
+      <option value="2">Wichtig (alle)</option>
+      <option value="1">Kassierer (Finanzen)</option>
+      <option value="0">Admin (alles)</option>
+    </select>
+    <button class="btn btn-primary" style="width:100%" onclick="addUser()">User anlegen</button>
+    <button class="btn btn-ghost" style="width:100%; margin-top:10px" onclick="document.getElementById('user-modal').style.display='none'">Schließen</button>
   </div>
 </div>
 
@@ -195,9 +164,18 @@
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
 
-  let state = { events: {}, users: {}, currentUser: null, currentEventId: null, currentFilter: 'all' };
+  const CATEGORIES = {
+    zelt:        { label: "Festzelt & Platz",           color: "#c8a45a", icon: "⛺" },
+    behoerde:    { label: "Behörden & Genehmigungen",   color: "#7ab8d4", icon: "🏛️" },
+    programm:    { label: "Programm & Künstler",         color: "#9b7ec8", icon: "🎵" },
+    presse:      { label: "Presse & Ankündigungen",      color: "#6bbf8e", icon: "📰" },
+    lieferanten: { label: "Lieferanten & Bestellungen",  color: "#e07b5a", icon: "🍺" },
+    finanzen:    { label: "Finanzen & Budget",            color: "#d4a847", icon: "💰" },
+    sonstiges:   { label: "Sonstiges",                  color: "#888888", icon: "⚙️" }
+  };
 
-  // Sync
+  let state = { events: {}, users: {}, currentUser: null, currentEventId: null, catFilter: 'all' };
+
   db.ref('festplaner_v3').on('value', snap => {
     const data = snap.val();
     if(data) {
@@ -209,16 +187,14 @@
 
   function toggleMenu() {
     const sb = document.getElementById("sidebar");
-    const ov = document.getElementById("overlay");
     const isHidden = sb.classList.toggle("sidebar-hidden");
-    ov.style.display = isHidden ? "none" : "block";
+    document.getElementById("overlay").style.display = isHidden ? "none" : "block";
   }
 
   function handleLogin() {
     const u = document.getElementById("login-user").value.toLowerCase().trim();
     const p = document.getElementById("login-pass").value.trim();
     const user = state.users[u] || (u === 'admin' && p === '1234' ? {name:'admin', pass:'1234', role:0} : null);
-    
     if(user && user.pass === p) {
       state.currentUser = user;
       document.getElementById("login-screen").style.display = "none";
@@ -226,15 +202,13 @@
       document.getElementById("user-info").innerHTML = `User: <b>${user.name}</b>`;
       document.getElementById("add-btn").style.display = "block";
       render();
-    } else {
-      document.getElementById("login-msg").textContent = "Falsche Zugangsdaten!";
-    }
+    } else { document.getElementById("login-msg").textContent = "Falsche Daten!"; }
   }
 
   function render() {
     if(!state.currentUser) return;
 
-    // Sidebar
+    // Feste Sidebar
     document.getElementById("event-list-ui").innerHTML = Object.entries(state.events).map(([id, ev]) => `
       <div style="padding:12px; background:#1a1a30; border-radius:10px; margin-bottom:8px; border:1px solid ${id===state.currentEventId?'var(--accent)':'transparent'}" onclick="selectEvent('${id}')">
         <b>${ev.name}</b>
@@ -245,35 +219,40 @@
     const ev = state.events[state.currentEventId];
     document.getElementById("current-event-name").textContent = ev.name;
 
-    // Filter-Bar
-    const users = [...new Set((ev.tasks || []).map(t => t.assignee).filter(Boolean))];
-    document.getElementById("filter-bar").innerHTML = `<button class="btn ${state.currentFilter==='all'?'btn-primary':'btn-ghost'}" onclick="setFilter('all')">Alle</button>` +
-      users.map(u => `<button class="btn ${state.currentFilter===u?'btn-primary':'btn-ghost'}" onclick="setFilter('${u}')">${u}</button>`).join('');
+    // Filter Bar
+    let filterHtml = `<button class="btn ${state.catFilter==='all'?'btn-primary':'btn-ghost'}" onclick="state.catFilter='all'; render();">Alle</button>`;
+    Object.entries(CATEGORIES).forEach(([key, cat]) => {
+        filterHtml += `<button class="btn ${state.catFilter===key?'btn-primary':'btn-ghost'}" onclick="state.catFilter='${key}'; render();">${cat.icon} ${cat.label}</button>`;
+    });
+    document.getElementById("category-filters").innerHTML = filterHtml;
 
-    // Tasks & Stats
     let tasks = ev.tasks || [];
     if(state.currentUser.role == 3) tasks = tasks.filter(t => t.assignee === state.currentUser.name);
-    const filtered = tasks.filter(t => state.currentFilter === 'all' || t.assignee === state.currentFilter);
+    if(state.catFilter !== 'all') tasks = tasks.filter(t => t.category === state.catFilter);
 
-    const done = filtered.filter(t => t.done).length;
-    document.getElementById("stat-progress").textContent = (filtered.length ? Math.round(done/filtered.length*100) : 0) + "%";
-    
+    // Stats
+    const done = tasks.filter(t => t.done).length;
+    document.getElementById("stat-progress").textContent = (tasks.length ? Math.round(done/tasks.length*100) : 0) + "%";
     if(state.currentUser.role <= 1) {
-      const budget = filtered.reduce((sum, t) => sum + (parseFloat(t.costI) || 0), 0);
-      document.getElementById("stat-budget").textContent = budget.toLocaleString() + " €";
+      document.getElementById("stat-budget").textContent = tasks.reduce((sum, t) => sum + (parseFloat(t.costI) || 0), 0).toLocaleString() + " €";
     }
+    const dLeft = Math.ceil((new Date(ev.date) - new Date()) / 86400000);
+    document.getElementById("stat-days").textContent = isNaN(dLeft) ? "-" : dLeft;
 
-    document.getElementById("task-list").innerHTML = filtered.sort((a,b) => a.done - b.done).map(t => {
+    // List
+    document.getElementById("task-list").innerHTML = tasks.sort((a,b) => a.done - b.done).map(t => {
       const deadline = new Date(new Date(ev.date).getTime() - (t.weeksBefore || 0) * 7 * 86400000);
       const diff = Math.ceil((deadline - new Date()) / 86400000);
       const statusCls = t.done ? "status-done" : (diff < 0 ? "status-overdue" : (diff <= 7 ? "status-urgent" : ""));
-      
+      const cat = CATEGORIES[t.category] || CATEGORIES.sonstiges;
+
       return `
         <div class="task-card ${statusCls}">
-          <input type="checkbox" ${t.done?'checked':''} onchange="toggleTask(${t.id})" style="width:24px; height:24px">
+          <input type="checkbox" ${t.done?'checked':''} onchange="toggleTask(${t.id})" style="width:22px; height:22px">
+          <div class="cat-icon-box" style="background:${cat.color}22; color:${cat.color}">${cat.icon}</div>
           <div class="task-info" onclick="openEdit(${t.id})">
             <div style="font-weight:bold">${t.title}</div>
-            <div style="font-size:11px; color:#7070a0">👤 ${t.assignee || 'Offen'}</div>
+            <div style="font-size:11px; color:#7070a0">${cat.label} • 👤 ${t.assignee || 'Offen'}</div>
             <span class="cd-badge ${diff<0?'cd-overdue':''}">${t.done?'Erledigt':(diff<0?'Überfällig!':'Noch '+diff+' Tg.')}</span>
           </div>
           <span onclick="openEdit(${t.id})" style="font-size:20px">✏️</span>
@@ -283,40 +262,47 @@
   }
 
   function selectEvent(id) { state.currentEventId = id; render(); toggleMenu(); }
-  function setFilter(f) { state.currentFilter = f; render(); }
-
-  function addTask() {
-    const id = Date.now();
-    if(!state.events[state.currentEventId].tasks) state.events[state.currentEventId].tasks = [];
-    state.events[state.currentEventId].tasks.push({ id, title: "Neue Aufgabe", assignee: "", done: false, weeksBefore: 1 });
-    db.ref('festplaner_v3/events').set(state.events);
-    openEdit(id);
-  }
 
   function openEdit(id) {
     activeTaskId = id;
     const t = state.events[state.currentEventId].tasks.find(x => x.id === id);
-    document.getElementById("ed-title").value = t.title;
+    document.getElementById("ed-title").value = t.title || "";
     document.getElementById("ed-weeks").value = t.weeksBefore || 0;
-    document.getElementById("ed-cost-p").value = t.costP || 0;
     document.getElementById("ed-cost-i").value = t.costI || 0;
     document.getElementById("ed-notes").value = t.notes || "";
-    document.getElementById("finance-fields").style.display = (state.currentUser.role <= 1) ? "block" : "none";
     
-    const sel = document.getElementById("ed-assignee");
-    sel.innerHTML = '<option value="">Offen</option>' + Object.values(state.users).map(u => `<option value="${u.name}" ${t.assignee===u.name?'selected':''}>${u.name}</option>`).join('');
+    // Categories Dropdown
+    const catSel = document.getElementById("ed-cat");
+    catSel.innerHTML = Object.entries(CATEGORIES).map(([key, c]) => `<option value="${key}" ${t.category===key?'selected':''}>${c.icon} ${c.label}</option>`).join('');
+
+    // Roles for Budget
+    document.getElementById("finance-field").style.display = (state.currentUser.role <= 1) ? "block" : "none";
+
+    // User Dropdown
+    const userSel = document.getElementById("ed-assignee");
+    userSel.innerHTML = '<option value="">Offen</option>' + Object.values(state.users).map(u => `<option value="${u.name}" ${t.assignee===u.name?'selected':''}>${u.name}</option>`).join('');
+    
     document.getElementById("edit-modal").style.display = "flex";
   }
 
   function saveEdit() {
     const t = state.events[state.currentEventId].tasks.find(x => x.id === activeTaskId);
     t.title = document.getElementById("ed-title").value;
+    t.category = document.getElementById("ed-cat").value;
     t.weeksBefore = parseInt(document.getElementById("ed-weeks").value) || 0;
     t.assignee = document.getElementById("ed-assignee").value;
     t.notes = document.getElementById("ed-notes").value;
-    if(state.currentUser.role <= 1) { t.costP = document.getElementById("ed-cost-p").value; t.costI = document.getElementById("ed-cost-i").value; }
+    if(state.currentUser.role <= 1) t.costI = document.getElementById("ed-cost-i").value;
     db.ref('festplaner_v3/events').set(state.events);
     document.getElementById("edit-modal").style.display = "none";
+  }
+
+  function addTask() {
+    const id = Date.now();
+    if(!state.events[state.currentEventId].tasks) state.events[state.currentEventId].tasks = [];
+    state.events[state.currentEventId].tasks.push({ id, title: "Neue Aufgabe", category: "sonstiges", done: false, weeksBefore: 1 });
+    db.ref('festplaner_v3/events').set(state.events);
+    openEdit(id);
   }
 
   function toggleTask(id) {
@@ -345,15 +331,29 @@
     openUserMgmt();
   }
 
+  function deleteUser(name) {
+    if(confirm("Löschen?")) { delete state.users[name]; db.ref('festplaner_v3/users').set(state.users); openUserMgmt(); }
+  }
+
+  function deleteTask() {
+    if(confirm("Löschen?")) {
+      state.events[state.currentEventId].tasks = state.events[state.currentEventId].tasks.filter(x => x.id !== activeTaskId);
+      db.ref('festplaner_v3/events').set(state.events);
+      document.getElementById("edit-modal").style.display = "none";
+    }
+  }
+
   function saveEvent() {
     const name = document.getElementById("ev-name").value;
     const date = document.getElementById("ev-date").value;
-    if(!name || !date) return alert("Daten fehlen");
+    if(!name || !date) return;
     const id = "ev_" + Date.now();
     state.events[id] = { name, date, tasks: [] };
     db.ref('festplaner_v3/events').set(state.events);
     document.getElementById("event-modal-ui").style.display = "none";
   }
+
+  function openEventModal() { document.getElementById("event-modal-ui").style.display = "flex"; }
 </script>
 </body>
 </html>
