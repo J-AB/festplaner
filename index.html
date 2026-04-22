@@ -64,7 +64,7 @@
   <div class="modal-box" style="max-width: 350px;">
     <h2 style="text-align:center; margin-bottom:20px">🎪 Vereins-Login</h2>
     <input type="text" id="login-user" class="form-input" placeholder="Benutzername">
-    <input type="password" id="login-pass" class="form-input" placeholder="Passwort">
+    <input type="password" id="login-pass" class="form-input" placeholder="Passwort" onkeydown="if(event.key==='Enter')handleLogin()">
     <button class="btn btn-primary" style="width:100%" onclick="handleLogin()">Einloggen</button>
   </div>
 </div>
@@ -73,7 +73,6 @@
   <div style="padding:20px; border-bottom:1px solid #2a2a4a">
     <button class="btn btn-primary" style="width:100%" onclick="selectEvent('home')">🏠 Home (Alle Aufgaben)</button>
   </div>
-  <div style="padding:15px 20px 5px; font-size:12px; color:#7070a0;">FESTE</div>
   <div id="event-list-ui" style="flex:1; overflow-y:auto; padding:10px"></div>
   <div id="admin-tools" style="padding:15px; border-top:1px solid #2a2a4a; display:none">
     <button class="btn btn-ghost" style="width:100%; margin-bottom:10px" onclick="openUserMgmt()">👥 User & Rollen</button>
@@ -112,40 +111,8 @@
   </div>
 </main>
 
-<div id="user-mgmt-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:3500; align-items:center; justify-content:center; padding:20px">
-  <div class="modal-box">
-    <h3>👥 Benutzerverwaltung</h3>
-    <div id="user-list-admin" style="margin:15px 0; max-height:200px; overflow-y:auto; border:1px solid #3a3a6a; padding:10px; border-radius:10px"></div>
-    <h4>Neuer Benutzer</h4>
-    <input type="text" id="new-u-name" class="form-input" placeholder="Name">
-    <input type="text" id="new-u-pass" class="form-input" placeholder="Passwort">
-    <select id="new-u-role" class="form-input">
-      <option value="1">Planer (Vollzugriff)</option>
-      <option value="2">Helfer (Nur Status)</option>
-    </select>
-    <div style="display:flex; gap:10px">
-      <button class="btn btn-ghost" style="flex:1" onclick="document.getElementById('user-mgmt-modal').style.display='none'">Schließen</button>
-      <button class="btn btn-primary" style="flex:1" onclick="createNewUser()">Hinzufügen</button>
-    </div>
-  </div>
-</div>
-
-<div id="event-edit-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:3000; align-items:center; justify-content:center; padding:20px">
-  <div class="modal-box">
-    <h3>Fest-Details bearbeiten</h3>
-    <input type="text" id="ev-edit-name" class="form-input" placeholder="Festname">
-    <input type="date" id="ev-edit-date" class="form-input">
-    <button class="btn btn-ghost" style="width:100%; margin-bottom:20px; color:var(--accent)" onclick="duplicateEvent()">📋 Fest duplizieren</button>
-    <div style="display:flex; gap:10px">
-      <button class="btn btn-danger" onclick="deleteEvent()">🗑️</button>
-      <button class="btn btn-ghost" style="flex:1" onclick="document.getElementById('event-edit-modal').style.display='none'">Abbr.</button>
-      <button class="btn btn-primary" style="flex:1" onclick="saveEventEdit()">Speichern</button>
-    </div>
-  </div>
-</div>
-
 <div id="edit-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:3000; align-items:center; justify-content:center; padding:20px">
-  <div class="modal-box">
+  <div class="modal-box" onkeydown="if(event.key==='Enter' && event.target.tagName!=='TEXTAREA')saveEdit()">
     <h3 id="modal-task-origin" style="font-size:12px; color:var(--accent)">Festname</h3>
     <input type="text" id="ed-title" class="form-input">
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
@@ -165,10 +132,26 @@
   </div>
 </div>
 
+<div id="user-mgmt-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:3500; align-items:center; justify-content:center; padding:20px">
+  <div class="modal-box">
+    <h3>👥 Benutzerverwaltung</h3>
+    <div id="user-list-admin" style="margin:15px 0; max-height:200px; overflow-y:auto; border:1px solid #3a3a6a; padding:10px; border-radius:10px"></div>
+    <h4>Neuer Benutzer</h4>
+    <input type="text" id="new-u-name" class="form-input" placeholder="Name">
+    <input type="text" id="new-u-pass" class="form-input" placeholder="Passwort" onkeydown="if(event.key==='Enter')createNewUser()">
+    <select id="new-u-role" class="form-input">
+      <option value="1">Planer (Vollzugriff)</option>
+      <option value="2">Helfer (Nur Status)</option>
+    </select>
+    <button class="btn btn-primary" style="width:100%" onclick="createNewUser()">Hinzufügen</button>
+    <button class="btn btn-ghost" style="width:100%; margin-top:10px" onclick="document.getElementById('user-mgmt-modal').style.display='none'">Schließen</button>
+  </div>
+</div>
+
 <div id="event-modal-ui" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:3000; align-items:center; justify-content:center; padding:20px">
   <div class="modal-box">
     <h3>Neues Fest</h3>
-    <input type="text" id="ev-name" class="form-input" placeholder="Name">
+    <input type="text" id="ev-name" class="form-input" placeholder="Name" onkeydown="if(event.key==='Enter')saveNewEvent()">
     <input type="date" id="ev-date" class="form-input">
     <button class="btn btn-primary" style="width:100%" onclick="saveNewEvent()">Anlegen</button>
     <button class="btn btn-ghost" style="width:100%; margin-top:10px" onclick="document.getElementById('event-modal-ui').style.display='none'">Abbrechen</button>
@@ -188,14 +171,15 @@
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
 
+  // Aktualisierte Kategorien
   const CATEGORIES = {
-    zelt: { label: "Platz", color: "#c8a45a", icon: "⛺" },
-    behoerde: { label: "Amt", color: "#7ab8d4", icon: "🏛️" },
-    programm: { label: "Musik", color: "#9b7ec8", icon: "🎵" },
-    presse: { label: "Presse", color: "#6bbf8e", icon: "📰" },
-    lieferanten: { label: "Gastro", color: "#e07b5a", icon: "🍺" },
-    finanzen: { label: "Finanzen", color: "#d4a847", icon: "💰" },
-    sonstiges: { label: "Sonstiges", color: "#888888", icon: "⚙️" }
+    location:    { label: "Location",     color: "#c8a45a", icon: "⛺" },
+    amt:         { label: "Amt",          color: "#7ab8d4", icon: "🏛️" },
+    programm:    { label: "Programm",     color: "#9b7ec8", icon: "🎵" },
+    werbung:     { label: "Werbung",      color: "#6bbf8e", icon: "📰" },
+    bestellungen:{ label: "Bestellungen", color: "#e07b5a", icon: "🍺" },
+    finanzen:    { label: "Finanzen",     color: "#d4a847", icon: "💰" },
+    sonstiges:   { label: "Sonstiges",    color: "#888888", icon: "⚙️" }
   };
 
   let state = { events: {}, users: {}, currentUser: null, currentEventId: 'home', catFilter: 'all', userFilter: 'all' };
@@ -220,13 +204,12 @@
       document.getElementById("user-info").innerHTML = `User: <b>${user.name}</b>`;
       state.currentEventId = 'home';
       render();
-    } else { alert("Fehler!"); }
+    } else { alert("Login fehlgeschlagen!"); }
   }
 
   function render() {
     if(!state.currentUser) return;
 
-    // Sidebar
     document.getElementById("event-list-ui").innerHTML = Object.entries(state.events).map(([id, ev]) => `
       <div style="padding:10px; background:#1a1a30; border-radius:8px; margin-bottom:5px; cursor:pointer; border:1px solid ${id===state.currentEventId?'var(--accent)':'transparent'}" onclick="selectEvent('${id}')">
         ${ev.name}
@@ -238,51 +221,32 @@
     const addBtn = document.getElementById("add-btn");
 
     if(state.currentEventId === 'home') {
-      // --- HOME MODE: PERSÖNLICHE TODOS ---
       document.getElementById("current-event-name").textContent = "Meine Aufgaben";
       document.getElementById("admin-ev-edit").style.display = "none";
       filterContainer.style.display = "none";
       addBtn.style.display = "none";
 
       let html = "";
-      let totalCost = 0;
-      let totalTasks = 0;
-
       Object.entries(state.events).forEach(([evId, ev]) => {
         let myTasks = (ev.tasks || []).filter(t => t.assignee === state.currentUser.name && !t.done);
         if(myTasks.length > 0) {
           html += `<div class="event-group-header">${ev.name}</div>`;
           myTasks.sort((a,b) => getDiff(ev.date, a) - getDiff(ev.date, b)).forEach(t => {
             html += renderTaskCard(t, evId, ev.date);
-            totalCost += (parseFloat(t.costI) || 0);
-            totalTasks++;
           });
         }
       });
-      taskList.innerHTML = html || "<p style='text-align:center; padding:40px; color:#7070a0'>Aktuell keine offenen Aufgaben für dich.</p>";
-      document.getElementById("stat-progress").textContent = totalTasks;
-      document.getElementById("stat-budget").textContent = totalCost.toLocaleString() + " €";
-      document.getElementById("stat-days").textContent = "-";
-
+      taskList.innerHTML = html || "<p style='text-align:center; padding:40px; color:#7070a0'>Keine offenen Aufgaben für dich.</p>";
     } else {
-      // --- EVENT MODE: EINZELNES FEST ---
       const ev = state.events[state.currentEventId];
       document.getElementById("current-event-name").textContent = ev.name;
       document.getElementById("admin-ev-edit").style.display = (state.currentUser.role == 0) ? "block" : "none";
       filterContainer.style.display = "block";
       addBtn.style.display = (state.currentUser.role <= 1) ? "block" : "none";
-
       renderFilters(ev);
-
       let tasks = ev.tasks || [];
       if(state.catFilter !== 'all') tasks = tasks.filter(t => t.category === state.catFilter);
       if(state.userFilter !== 'all') tasks = tasks.filter(t => t.assignee === state.userFilter);
-
-      document.getElementById("stat-progress").textContent = (tasks.length ? Math.round(tasks.filter(t=>t.done).length/tasks.length*100) : 0) + "%";
-      document.getElementById("stat-budget").textContent = tasks.reduce((sum, t) => sum + (parseFloat(t.costI) || 0), 0).toLocaleString() + " €";
-      const dLeft = ev.date ? Math.ceil((new Date(ev.date) - new Date()) / 86400000) : null;
-      document.getElementById("stat-days").textContent = dLeft || "-";
-
       taskList.innerHTML = tasks.sort((a,b) => a.done - b.done).map(t => renderTaskCard(t, state.currentEventId, ev.date)).join('');
     }
   }
@@ -318,10 +282,6 @@
     document.getElementById("user-filters").innerHTML = userHtml;
   }
 
-  // --- ACTIONS ---
-  function selectEvent(id) { state.currentEventId = id; render(); if(window.innerWidth < 1024) toggleMenu(); }
-  function toggleMenu() { document.getElementById("sidebar").classList.toggle("sidebar-hidden"); document.getElementById("overlay").style.display = document.getElementById("sidebar").classList.contains("sidebar-hidden") ? "none" : "block"; }
-  
   function openEdit(evId, taskId) {
     if(state.currentUser.role > 1) return;
     activeTaskEventId = evId;
@@ -333,7 +293,12 @@
     document.getElementById("ed-cost-i").value = t.costI || 0;
     document.getElementById("ed-notes").value = t.notes || "";
     document.getElementById("ed-cat").innerHTML = Object.entries(CATEGORIES).map(([k,c]) => `<option value="${k}" ${t.category===k?'selected':''}>${c.icon} ${c.label}</option>`).join('');
-    document.getElementById("ed-assignee").innerHTML = '<option value="">Offen</option>' + Object.values(state.users).map(u => `<option value="${u.name}" ${t.assignee===u.name?'selected':''}>${u.name}</option>`).join('');
+    
+    // Filter Admin out from Assignee list
+    const selectableUsers = Object.values(state.users).filter(u => u.role !== 0);
+    document.getElementById("ed-assignee").innerHTML = '<option value="">Offen</option>' + 
+      selectableUsers.map(u => `<option value="${u.name}" ${t.assignee===u.name?'selected':''}>${u.name}</option>`).join('');
+    
     document.getElementById("edit-modal").style.display = "flex";
   }
 
@@ -342,10 +307,10 @@
     const idx = tasks.findIndex(x => x.id === activeTaskId);
     tasks[idx].title = document.getElementById("ed-title").value;
     tasks[idx].category = document.getElementById("ed-cat").value;
-    tasks[idx].weeksBefore = parseInt(document.getElementById("ed-weeks").value);
+    tasks[idx].weeksBefore = parseInt(document.getElementById("ed-weeks").value) || 0;
     tasks[idx].assignee = document.getElementById("ed-assignee").value;
     tasks[idx].notes = document.getElementById("ed-notes").value;
-    tasks[idx].costI = parseFloat(document.getElementById("ed-cost-i").value);
+    tasks[idx].costI = parseFloat(document.getElementById("ed-cost-i").value) || 0;
     db.ref('festplaner_v3/events/' + activeTaskEventId + '/tasks').set(tasks);
     document.getElementById("edit-modal").style.display = "none";
   }
@@ -360,24 +325,29 @@
   function addTask() {
     const tasks = state.events[state.currentEventId].tasks || [];
     const id = Date.now();
-    tasks.push({ id, title: "Neue Aufgabe", category: "sonstiges", done: false, weeksBefore: 1, assignee: state.currentUser.name });
+    tasks.push({ id, title: "Neue Aufgabe", category: "sonstiges", done: false, weeksBefore: 1, assignee: "" });
     db.ref('festplaner_v3/events/' + state.currentEventId + '/tasks').set(tasks);
     openEdit(state.currentEventId, id);
   }
 
-  // --- ADMIN TOOLS ---
+  // Admin Tools
   function openUserMgmt() {
     document.getElementById("user-list-admin").innerHTML = Object.values(state.users).map(u => `
       <div style="display:flex; justify-content:space-between; margin-bottom:5px; background:#1a1a30; padding:8px; border-radius:5px">
-        <span>${u.name}</span> <button onclick="deleteUser('${u.name}')" style="color:red; background:none; border:none">✖</button>
+        <span>${u.name} (${u.role==1?'P':'H'})</span> 
+        ${u.name !== 'admin' ? `<button onclick="deleteUser('${u.name}')" style="color:red; background:none; border:none">✖</button>` : ''}
       </div>`).join('');
     document.getElementById("user-mgmt-modal").style.display = "flex";
   }
   function createNewUser() {
     const name = document.getElementById("new-u-name").value.toLowerCase().trim();
     const pass = document.getElementById("new-u-pass").value.trim();
-    const role = document.getElementById("new-u-role").value;
-    if(name && pass) db.ref('festplaner_v3/users/' + name).set({name, pass, role}).then(openUserMgmt);
+    const role = parseInt(document.getElementById("new-u-role").value);
+    if(name && pass) db.ref('festplaner_v3/users/' + name).set({name, pass, role}).then(() => {
+      document.getElementById("new-u-name").value = "";
+      document.getElementById("new-u-pass").value = "";
+      openUserMgmt();
+    });
   }
   function deleteUser(n) { if(confirm("Löschen?")) db.ref('festplaner_v3/users/' + n).remove().then(openUserMgmt); }
   function saveNewEvent() {
@@ -385,6 +355,8 @@
     if(name) db.ref('festplaner_v3/events/ev_' + Date.now()).set({ name, date: document.getElementById("ev-date").value, tasks: [] });
     document.getElementById("event-modal-ui").style.display = "none";
   }
+  function selectEvent(id) { state.currentEventId = id; render(); if(window.innerWidth < 1024) toggleMenu(); }
+  function toggleMenu() { document.getElementById("sidebar").classList.toggle("sidebar-hidden"); document.getElementById("overlay").style.display = document.getElementById("sidebar").classList.contains("sidebar-hidden") ? "none" : "block"; }
   function openEventModal() { document.getElementById("event-modal-ui").style.display = "flex"; }
 </script>
 </body>
