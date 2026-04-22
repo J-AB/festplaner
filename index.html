@@ -132,6 +132,21 @@
   </div>
 </div>
 
+<div id="event-edit-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:3000; align-items:center; justify-content:center; padding:20px">
+  <div class="modal-box">
+    <h3>Fest bearbeiten</h3>
+    <label>Festname</label>
+    <input type="text" id="ev-edit-name" class="form-input">
+    <label>Datum</label>
+    <input type="date" id="ev-edit-date" class="form-input">
+    <div style="display:flex; gap:10px; margin-top:10px">
+      <button class="btn btn-danger" onclick="deleteEvent()">🗑️ Fest löschen</button>
+      <button class="btn btn-ghost" style="flex:1" onclick="document.getElementById('event-edit-modal').style.display='none'">Abbr.</button>
+      <button class="btn btn-primary" style="flex:1" onclick="saveEventEdit()">Speichern</button>
+    </div>
+  </div>
+</div>
+
 <div id="user-mgmt-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:3500; align-items:center; justify-content:center; padding:20px">
   <div class="modal-box">
     <h3>👥 Benutzerverwaltung</h3>
@@ -171,7 +186,6 @@
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
 
-  // Aktualisierte Kategorien
   const CATEGORIES = {
     location:    { label: "Location",     color: "#c8a45a", icon: "⛺" },
     amt:         { label: "Amt",          color: "#7ab8d4", icon: "🏛️" },
@@ -239,6 +253,7 @@
       taskList.innerHTML = html || "<p style='text-align:center; padding:40px; color:#7070a0'>Keine offenen Aufgaben für dich.</p>";
     } else {
       const ev = state.events[state.currentEventId];
+      if(!ev) { selectEvent('home'); return; }
       document.getElementById("current-event-name").textContent = ev.name;
       document.getElementById("admin-ev-edit").style.display = (state.currentUser.role == 0) ? "block" : "none";
       filterContainer.style.display = "block";
@@ -282,6 +297,7 @@
     document.getElementById("user-filters").innerHTML = userHtml;
   }
 
+  // --- ACTIONS (TASKS) ---
   function openEdit(evId, taskId) {
     if(state.currentUser.role > 1) return;
     activeTaskEventId = evId;
@@ -294,7 +310,6 @@
     document.getElementById("ed-notes").value = t.notes || "";
     document.getElementById("ed-cat").innerHTML = Object.entries(CATEGORIES).map(([k,c]) => `<option value="${k}" ${t.category===k?'selected':''}>${c.icon} ${c.label}</option>`).join('');
     
-    // Filter Admin out from Assignee list
     const selectableUsers = Object.values(state.users).filter(u => u.role !== 0);
     document.getElementById("ed-assignee").innerHTML = '<option value="">Offen</option>' + 
       selectableUsers.map(u => `<option value="${u.name}" ${t.assignee===u.name?'selected':''}>${u.name}</option>`).join('');
@@ -315,6 +330,13 @@
     document.getElementById("edit-modal").style.display = "none";
   }
 
+  function deleteTask() {
+    if(!confirm("Aufgabe wirklich löschen?")) return;
+    const tasks = state.events[activeTaskEventId].tasks.filter(x => x.id !== activeTaskId);
+    db.ref('festplaner_v3/events/' + activeTaskEventId + '/tasks').set(tasks);
+    document.getElementById("edit-modal").style.display = "none";
+  }
+
   function toggleTask(evId, id) {
     const tasks = [...state.events[evId].tasks];
     const idx = tasks.findIndex(x => x.id === id);
@@ -330,11 +352,35 @@
     openEdit(state.currentEventId, id);
   }
 
-  // Admin Tools
+  // --- ACTIONS (EVENTS) ---
+  function openEventEdit() {
+    const ev = state.events[state.currentEventId];
+    document.getElementById("ev-edit-name").value = ev.name;
+    document.getElementById("ev-edit-date").value = ev.date || "";
+    document.getElementById("event-edit-modal").style.display = "flex";
+  }
+
+  function saveEventEdit() {
+    const name = document.getElementById("ev-edit-name").value;
+    const date = document.getElementById("ev-edit-date").value;
+    if(name) {
+      db.ref('festplaner_v3/events/' + state.currentEventId).update({ name, date });
+      document.getElementById("event-edit-modal").style.display = "none";
+    }
+  }
+
+  function deleteEvent() {
+    if(!confirm("Das gesamte Fest und alle zugehörigen Aufgaben löschen?")) return;
+    db.ref('festplaner_v3/events/' + state.currentEventId).remove();
+    document.getElementById("event-edit-modal").style.display = "none";
+    selectEvent('home');
+  }
+
+  // --- ADMIN TOOLS ---
   function openUserMgmt() {
     document.getElementById("user-list-admin").innerHTML = Object.values(state.users).map(u => `
       <div style="display:flex; justify-content:space-between; margin-bottom:5px; background:#1a1a30; padding:8px; border-radius:5px">
-        <span>${u.name} (${u.role==1?'P':'H'})</span> 
+        <span>${u.name} (${u.role==1?'Planer':'Helfer'})</span> 
         ${u.name !== 'admin' ? `<button onclick="deleteUser('${u.name}')" style="color:red; background:none; border:none">✖</button>` : ''}
       </div>`).join('');
     document.getElementById("user-mgmt-modal").style.display = "flex";
@@ -349,12 +395,17 @@
       openUserMgmt();
     });
   }
-  function deleteUser(n) { if(confirm("Löschen?")) db.ref('festplaner_v3/users/' + n).remove().then(openUserMgmt); }
+  function deleteUser(n) { if(confirm("User löschen?")) db.ref('festplaner_v3/users/' + n).remove().then(openUserMgmt); }
   function saveNewEvent() {
     const name = document.getElementById("ev-name").value;
-    if(name) db.ref('festplaner_v3/events/ev_' + Date.now()).set({ name, date: document.getElementById("ev-date").value, tasks: [] });
-    document.getElementById("event-modal-ui").style.display = "none";
+    if(name) {
+      const id = 'ev_' + Date.now();
+      db.ref('festplaner_v3/events/' + id).set({ name, date: document.getElementById("ev-date").value, tasks: [] });
+      document.getElementById("event-modal-ui").style.display = "none";
+      selectEvent(id);
+    }
   }
+
   function selectEvent(id) { state.currentEventId = id; render(); if(window.innerWidth < 1024) toggleMenu(); }
   function toggleMenu() { document.getElementById("sidebar").classList.toggle("sidebar-hidden"); document.getElementById("overlay").style.display = document.getElementById("sidebar").classList.contains("sidebar-hidden") ? "none" : "block"; }
   function openEventModal() { document.getElementById("event-modal-ui").style.display = "flex"; }
