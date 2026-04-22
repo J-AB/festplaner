@@ -3,136 +3,163 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>FestManager Elite</title>
+<title>FestPlaner Dashboard</title>
 <style>
   :root { 
-    --bg: #f0f2f5; 
-    --card: rgba(255, 255, 255, 0.8); 
-    --accent: #4f46e5; 
-    --text: #1f2937; 
-    --sub: #6b7280; 
-    --danger: #ef4444; 
-    --safe: #10b981;
-    --glass: rgba(255, 255, 255, 0.7);
+    --bg: #f4f7fe; 
+    --accent: #4318ff; 
+    --card-bg: #ffffff;
+    --text-main: #1b2559;
+    --text-sub: #a3aed0;
+    --danger: #ee5d50;
+    --warning: #ffb547;
+    --success: #05cd99;
+    --shadow: 14px 17px 40px 4px rgba(112, 144, 176, 0.08);
   }
-  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; font-family: 'Inter', -apple-system, sans-serif; }
-  
-  body { background: var(--bg); color: var(--text); display: flex; height: 100dvh; overflow: hidden; }
 
-  /* Glass Sidebar */
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'DM Sans', sans-serif; -webkit-tap-highlight-color: transparent; }
+  
+  body { background: var(--bg); color: var(--text-main); display: flex; height: 100dvh; overflow: hidden; }
+
+  /* Navigation Sidebar */
   #sidebar { 
-    width: 300px; background: var(--glass); backdrop-filter: blur(15px); border-right: 1px solid rgba(0,0,0,0.05); 
-    display: flex; flex-direction: column; transition: 0.3s ease; position: absolute; top: 0; bottom: 0; left: 0; z-index: 2000;
+    width: 290px; background: var(--card-bg); display: flex; flex-direction: column; 
+    transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); position: absolute; top: 0; bottom: 0; left: 0; z-index: 2000;
+    box-shadow: var(--shadow);
   }
   .sidebar-hidden { transform: translateX(-100%); }
-  #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.2); backdrop-filter: blur(4px); display: none; z-index: 1500; }
+  #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.1); backdrop-filter: blur(4px); display: none; z-index: 1500; }
 
-  #content { flex: 1; display: flex; flex-direction: column; width: 100%; position: relative; }
+  /* Layout Container */
+  #content { flex: 1; display: flex; flex-direction: column; width: 100%; overflow: hidden; }
 
-  /* Header Design */
-  #header { background: white; padding: 20px; border-bottom: 1px solid rgba(0,0,0,0.05); }
+  /* Glassmorphism Header */
+  #header { 
+    padding: 25px; background: rgba(244, 247, 254, 0.8); backdrop-filter: blur(10px);
+    position: sticky; top: 0; z-index: 100;
+  }
   .top-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
   
-  /* Filter Rows */
-  .filter-area { background: white; padding-bottom: 10px; }
-  .filter-row { display: flex; gap: 10px; padding: 0 20px 10px 20px; overflow-x: auto; scrollbar-width: none; }
+  /* Dashboard Stats */
+  .stats-container { display: flex; gap: 15px; margin-bottom: 5px; overflow-x: auto; padding: 5px; scrollbar-width: none; }
+  .stat-widget { 
+    background: var(--card-bg); min-width: 140px; padding: 15px; border-radius: 20px; 
+    box-shadow: var(--shadow); flex: 1; display: flex; flex-direction: column; align-items: center;
+  }
+  .stat-val { font-size: 18px; font-weight: 700; color: var(--accent); }
+  .stat-lbl { font-size: 11px; color: var(--text-sub); text-transform: uppercase; margin-top: 4px; }
+
+  /* Floating Filter Bar */
+  .filter-area { padding: 0 25px 15px; }
+  .filter-row { display: flex; gap: 12px; overflow-x: auto; scrollbar-width: none; padding: 5px 0; }
   .filter-row::-webkit-scrollbar { display: none; }
 
-  .icon-filter { 
-    min-width: 45px; height: 45px; background: #f9fafb; border-radius: 12px; display: flex; 
-    align-items: center; justify-content: center; font-size: 20px; border: 1px solid #e5e7eb; cursor: pointer; transition: 0.2s;
+  .btn-filter { 
+    min-width: 48px; height: 48px; background: var(--card-bg); border-radius: 15px; 
+    display: flex; align-items: center; justify-content: center; font-size: 20px;
+    box-shadow: var(--shadow); border: none; cursor: pointer; transition: 0.3s;
   }
-  .icon-filter.active { background: var(--accent); color: white; border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3); }
+  .btn-filter.active { background: var(--accent); color: white; transform: scale(1.1); }
   
-  .user-filter { 
-    padding: 8px 16px; border-radius: 12px; background: #f3f4f6; border: 1px solid transparent; 
-    font-size: 13px; font-weight: 600; color: var(--sub); white-space: nowrap; cursor: pointer;
+  .user-chip { 
+    padding: 10px 18px; border-radius: 50px; background: var(--card-bg); 
+    font-size: 13px; font-weight: 600; color: var(--text-main); white-space: nowrap;
+    box-shadow: var(--shadow); cursor: pointer; border: 2px solid transparent;
   }
-  .user-filter.active { background: white; color: var(--accent); border-color: var(--accent); box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
+  .user-chip.active { border-color: var(--accent); color: var(--accent); }
 
-  /* Card Grid */
-  .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 5px; }
-  .stat-card { background: #f9fafb; padding: 12px; border-radius: 16px; text-align: center; border: 1px solid #f3f4f6; }
-  .stat-val { display: block; font-size: 16px; font-weight: 800; color: var(--accent); }
-  .stat-lbl { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--sub); }
-
-  /* Task Cards (New Look) */
-  #main-scroll { flex: 1; overflow-y: auto; padding: 20px; background: #f0f2f5; }
-  .task-card { 
-    background: white; border-radius: 20px; padding: 16px; margin-bottom: 12px; 
-    display: flex; align-items: center; gap: 15px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
-    transition: 0.2s; border: 1px solid transparent;
+  /* TASK GRID SYSTEM */
+  #main-scroll { flex: 1; overflow-y: auto; padding: 10px 25px 100px; }
+  .task-grid { 
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; 
   }
-  .task-card:active { transform: scale(0.98); }
-  .status-done { opacity: 0.6; background: #f9fafb; }
-  .status-overdue { border-left: 4px solid var(--danger); }
-  .status-urgent { border-left: 4px solid #f59e0b; }
 
-  .task-check { width: 24px; height: 24px; border-radius: 8px; accent-color: var(--accent); }
-  .cat-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .task-tile { 
+    background: var(--card-bg); border-radius: 24px; padding: 20px; 
+    box-shadow: var(--shadow); transition: 0.3s; position: relative;
+    border: 1px solid transparent; display: flex; flex-direction: column; gap: 12px;
+  }
+  .task-tile:hover { transform: translateY(-5px); }
+  .task-tile.done { opacity: 0.6; background: #fdfdfd; box-shadow: none; border: 1px dashed var(--text-sub); }
+
+  .tile-header { display: flex; justify-content: space-between; align-items: flex-start; }
+  .category-tag { padding: 4px 10px; border-radius: 8px; font-size: 10px; font-weight: 800; text-transform: uppercase; }
   
-  /* FAB (Floating Action Button) */
-  #add-btn { 
-    position: absolute; bottom: 30px; right: 30px; width: 60px; height: 60px; 
-    border-radius: 30px; background: var(--accent); color: white; font-size: 24px;
-    box-shadow: 0 10px 25px rgba(79, 70, 229, 0.4); border: none; cursor: pointer;
-  }
-
-  /* Modals */
-  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(8px); z-index: 3000; display: none; align-items: center; justify-content: center; padding: 20px; }
-  .modal-box { background: white; border-radius: 28px; padding: 30px; width: 100%; max-width: 400px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
-  .form-input { width: 100%; background: #f3f4f6; border: 2px solid transparent; border-radius: 14px; padding: 14px; margin-bottom: 15px; font-size: 16px; transition: 0.2s; }
-  .form-input:focus { border-color: var(--accent); outline: none; background: white; }
+  .tile-title { font-size: 16px; font-weight: 700; color: var(--text-main); line-height: 1.3; }
+  .tile-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; border-top: 1px solid #f4f7fe; padding-top: 12px; }
   
-  .btn { padding: 12px 20px; border-radius: 14px; font-weight: 700; border: none; cursor: pointer; transition: 0.2s; }
-  .btn-primary { background: var(--accent); color: white; width: 100%; }
-  .btn-ghost { background: #f3f4f6; color: var(--text); }
-  .btn-danger { background: #fee2e2; color: var(--danger); }
+  .assignee-info { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-sub); }
+  .assignee-avatar { width: 24px; height: 24px; background: #e0e7ff; color: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 10px; }
 
-  @media (min-width: 1024px) { #sidebar { position: relative; transform: none; } #overlay { display: none !important; } }
+  .due-badge { padding: 5px 10px; border-radius: 10px; font-size: 11px; font-weight: 700; }
+  .overdue { background: #feebeb; color: var(--danger); }
+  .upcoming { background: #e6faf5; color: var(--success); }
+
+  /* Floating Add Button */
+  #fab { 
+    position: fixed; bottom: 30px; right: 30px; width: 64px; height: 64px; 
+    border-radius: 20px; background: var(--accent); color: white; font-size: 30px;
+    box-shadow: 0px 10px 20px rgba(67, 24, 255, 0.3); border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; z-index: 1000; transition: 0.3s;
+  }
+  #fab:active { transform: scale(0.9) rotate(90deg); }
+
+  /* Custom Modal Design */
+  .modal-frame { position: fixed; inset: 0; background: rgba(27, 37, 89, 0.4); backdrop-filter: blur(8px); z-index: 3000; display: none; align-items: center; justify-content: center; padding: 20px; }
+  .modal-content { background: white; border-radius: 30px; padding: 30px; width: 100%; max-width: 450px; box-shadow: var(--shadow); }
+  .input-field { width: 100%; background: #f4f7fe; border: none; border-radius: 15px; padding: 15px; margin-bottom: 15px; color: var(--text-main); font-weight: 500; }
+  .input-field:focus { outline: 2px solid var(--accent); }
+
+  .btn-row { display: flex; gap: 10px; }
+  .btn-main { background: var(--accent); color: white; padding: 15px; border-radius: 15px; border: none; flex: 1; font-weight: 700; cursor: pointer; }
+  .btn-sec { background: #f4f7fe; color: var(--text-sub); padding: 15px; border-radius: 15px; border: none; font-weight: 700; cursor: pointer; }
+
+  @media (max-width: 600px) { .task-grid { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
 
 <div id="overlay" onclick="toggleMenu()"></div>
 
-<div id="login-screen" style="position:fixed; inset:0; background:white; z-index:4000; display:flex; align-items:center; justify-content:center; padding:20px;">
-  <div class="modal-box" style="box-shadow: none; border: 1px solid #eee;">
-    <h1 style="font-size: 24px; margin-bottom: 8px; text-align: center;">Willkommen 👋</h1>
-    <p style="color: var(--sub); text-align: center; margin-bottom: 24px;">Vereins-Planer Pro</p>
-    <input type="text" id="login-user" class="form-input" placeholder="Benutzername">
-    <input type="password" id="login-pass" class="form-input" placeholder="Passwort">
-    <button class="btn btn-primary" onclick="handleLogin()">Einloggen</button>
+<div id="login-screen" style="position:fixed; inset:0; background:var(--bg); z-index:4000; display:flex; align-items:center; justify-content:center; padding:20px;">
+  <div class="modal-content" style="text-align: center;">
+    <div style="font-size: 40px; margin-bottom: 10px;">🎪</div>
+    <h2 style="margin-bottom: 5px;">VereinsPlaner</h2>
+    <p style="color: var(--text-sub); margin-bottom: 25px;">Dashboard Login</p>
+    <input type="text" id="login-user" class="input-field" placeholder="Name">
+    <input type="password" id="login-pass" class="input-field" placeholder="Passwort">
+    <button class="btn-main" onclick="handleLogin()">Einloggen</button>
   </div>
 </div>
 
 <aside id="sidebar" class="sidebar-hidden">
-  <div style="padding:30px 20px">
-    <h2 style="font-size: 18px; color: var(--accent);">Meine Events</h2>
+  <div style="padding:40px 25px 20px;">
+    <h1 style="font-size: 22px; color: var(--accent);">Dashboard</h1>
   </div>
-  <div id="event-list-ui" style="flex:1; overflow-y:auto; padding:0 15px"></div>
-  <div id="admin-tools" style="padding:20px; display:none;">
-    <button class="btn btn-ghost" style="width:100%; margin-bottom:10px" onclick="openEventModal()">+ Neues Fest</button>
+  <div id="event-list-ui" style="flex:1; padding:10px 15px; overflow-y:auto;"></div>
+  <div id="admin-tools" style="padding:20px; display:none; border-top: 1px solid #f4f7fe;">
+    <button class="btn-sec" style="width:100%" onclick="saveNewEvent()">+ Fest hinzufügen</button>
   </div>
-  <div style="padding:20px; border-top: 1px solid rgba(0,0,0,0.05);">
-    <div id="user-info" style="font-size:12px; margin-bottom:15px; font-weight: 600;"></div>
-    <button class="btn btn-danger" style="width:100%; font-size: 12px;" onclick="location.reload()">Abmelden</button>
+  <div style="padding:25px; background: #fcfcfc;">
+    <div id="user-info" style="font-size:12px; font-weight: 700; margin-bottom: 10px;"></div>
+    <button class="btn-sec" style="width:100%; color: var(--danger);" onclick="location.reload()">Abmelden</button>
   </div>
 </aside>
 
 <main id="content">
   <header id="header">
     <div class="top-bar">
-      <div style="display:flex; align-items:center; gap:15px">
-        <div onclick="toggleMenu()" style="cursor:pointer; font-size:20px">☰</div>
-        <h2 id="current-event-name" style="font-size: 20px; font-weight: 800;">Wähle ein Fest...</h2>
+      <div style="display:flex; align-items:center; gap:20px">
+        <div onclick="toggleMenu()" style="cursor:pointer; font-size:24px;">☰</div>
+        <h2 id="current-event-name" style="font-weight: 800; letter-spacing: -0.5px;">Event auswählen</h2>
       </div>
-      <button id="admin-ev-edit" class="btn btn-ghost" style="display:none; border-radius: 50%; width:40px; height:40px; padding:0" onclick="openEventEdit()">⚙️</button>
+      <button id="admin-ev-edit" class="btn-sec" style="display:none; width:45px; height:45px; border-radius:15px; padding:0;" onclick="openEventEdit()">⚙️</button>
     </div>
-    <div class="stats-grid">
-      <div class="stat-card"><span class="stat-lbl">Status</span><span class="stat-val" id="stat-progress">0%</span></div>
-      <div class="stat-card"><span class="stat-lbl">Kosten</span><span class="stat-val" id="stat-budget">€0</span></div>
-      <div class="stat-card"><span class="stat-lbl">Tage</span><span class="stat-val" id="stat-days">-</span></div>
+    
+    <div class="stats-container">
+      <div class="stat-widget"><span class="stat-val" id="stat-progress">0%</span><span class="stat-lbl">Fertig</span></div>
+      <div class="stat-widget"><span class="stat-val" id="stat-budget">€0</span><span class="stat-lbl">Kosten</span></div>
+      <div class="stat-widget"><span class="stat-val" id="stat-days">-</span><span class="stat-lbl">Countdown</span></div>
     </div>
   </header>
 
@@ -142,43 +169,42 @@
   </div>
 
   <div id="main-scroll">
-    <div id="task-list"></div>
+    <div id="task-list" class="task-grid"></div>
   </div>
   
-  <button id="add-btn" style="display:none;" onclick="addTask()">+</button>
+  <button id="fab" style="display:none;" onclick="addTask()">+</button>
 </main>
 
-<div id="event-edit-modal" class="modal-overlay">
-  <div class="modal-box">
-    <h3 style="margin-bottom:20px">Fest-Einstellungen</h3>
-    <input type="text" id="ev-edit-name" class="form-input" placeholder="Fest Name">
-    <input type="date" id="ev-edit-date" class="form-input">
-    <button class="btn btn-ghost" style="width:100%; margin-bottom:10px; color:var(--accent)" onclick="duplicateEvent()">📋 Fest duplizieren</button>
-    <div style="display:flex; gap:10px; margin-top:10px">
-      <button class="btn btn-danger" onclick="deleteEvent()">🗑️</button>
-      <button class="btn btn-ghost" style="flex:1" onclick="closeModals()">Abbr.</button>
-      <button class="btn btn-primary" style="flex:1" onclick="saveEventEdit()">Speichern</button>
+<div id="edit-modal" class="modal-frame">
+  <div class="modal-content">
+    <h3 style="margin-bottom:20px;">Aufgabe bearbeiten</h3>
+    <input type="text" id="ed-title" class="input-field" placeholder="Titel">
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
+      <select id="ed-cat" class="input-field"></select>
+      <select id="ed-assignee" class="input-field"></select>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
+      <input type="number" id="ed-weeks" class="input-field" placeholder="Wochen davor">
+      <input type="number" id="ed-cost-i" class="input-field" placeholder="Kosten €">
+    </div>
+    <textarea id="ed-notes" class="input-field" style="height:80px" placeholder="Notizen..."></textarea>
+    <div class="btn-row">
+      <button class="btn-sec" style="color:var(--danger)" onclick="deleteTask()">Löschen</button>
+      <button class="btn-sec" onclick="closeModals()">Abbrechen</button>
+      <button class="btn-main" onclick="saveEdit()">Speichern</button>
     </div>
   </div>
 </div>
 
-<div id="edit-modal" class="modal-overlay">
-  <div class="modal-box">
-    <h3 style="margin-bottom:20px">Aufgabe details</h3>
-    <input type="text" id="ed-title" class="form-input" placeholder="Titel">
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
-      <select id="ed-cat" class="form-input"></select>
-      <select id="ed-assignee" class="form-input"></select>
-    </div>
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
-      <input type="number" id="ed-weeks" class="form-input" placeholder="Wochen">
-      <input type="number" id="ed-cost-i" class="form-input" placeholder="Ist Kosten €">
-    </div>
-    <textarea id="ed-notes" class="form-input" style="height:80px" placeholder="Notizen..."></textarea>
-    <div style="display:flex; gap:10px">
-      <button class="btn btn-danger" onclick="deleteTask()">🗑️</button>
-      <button class="btn btn-ghost" style="flex:1" onclick="closeModals()">Abbr.</button>
-      <button class="btn btn-primary" style="flex:1" onclick="saveEdit()">Sichern</button>
+<div id="event-edit-modal" class="modal-frame">
+  <div class="modal-content">
+    <h3>Fest-Details</h3>
+    <input type="text" id="ev-edit-name" class="input-field" style="margin-top:15px">
+    <input type="date" id="ev-edit-date" class="input-field">
+    <button class="btn-sec" style="width:100%; margin-bottom:15px;" onclick="duplicateEvent()">📋 Fest duplizieren</button>
+    <div class="btn-row">
+      <button class="btn-sec" style="color:var(--danger)" onclick="deleteEvent()">Löschen</button>
+      <button class="btn-main" onclick="saveEventEdit()">Sichern</button>
     </div>
   </div>
 </div>
@@ -197,13 +223,13 @@
   const db = firebase.database();
 
   const CATEGORIES = {
-    zelt: { icon: "⛺", color: "#f59e0b", label: "Platz" },
-    behoerde: { icon: "🏛️", color: "#3b82f6", label: "Amt" },
-    programm: { icon: "🎵", color: "#8b5cf6", label: "Musik" },
-    presse: { icon: "📰", color: "#10b981", label: "Presse" },
-    lieferanten: { icon: "🍺", color: "#f43f5e", label: "Gastro" },
-    finanzen: { icon: "💰", color: "#059669", label: "Geld" },
-    sonstiges: { icon: "⚙️", color: "#6b7280", label: "Sonstiges" }
+    zelt: { icon: "⛺", color: "#4318ff", label: "Platz" },
+    behoerde: { icon: "🏛️", color: "#39b8ff", label: "Amt" },
+    programm: { icon: "🎵", color: "#b01eff", label: "Musik" },
+    presse: { icon: "📰", color: "#05cd99", label: "Presse" },
+    lieferanten: { icon: "🍺", color: "#ff5b5b", label: "Gastro" },
+    finanzen: { icon: "💰", color: "#ffb547", label: "Geld" },
+    sonstiges: { icon: "⚙️", color: "#a3aed0", label: "Sonstiges" }
   };
 
   let state = { events: {}, users: {}, currentUser: null, currentEventId: null, catFilter: 'all', userFilter: 'all' };
@@ -225,8 +251,8 @@
       state.userFilter = user.name;
       document.getElementById("login-screen").style.display = "none";
       if(user.role == 0) document.getElementById("admin-tools").style.display = "block";
-      document.getElementById("user-info").textContent = "👋 " + user.name;
-      document.getElementById("add-btn").style.display = "block";
+      document.getElementById("user-info").textContent = "Aktiver User: " + user.name;
+      document.getElementById("fab").style.display = "flex";
       render();
     }
   }
@@ -236,8 +262,8 @@
 
     // Sidebar Events
     document.getElementById("event-list-ui").innerHTML = Object.entries(state.events).map(([id, ev]) => `
-      <div onclick="selectEvent('${id}')" style="padding:15px; border-radius:14px; margin-bottom:8px; cursor:pointer; background:${id===state.currentEventId?'var(--accent)':'white'}; color:${id===state.currentEventId?'white':''}; font-weight:bold; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-        ${ev.name}
+      <div onclick="selectEvent('${id}')" style="padding:15px; border-radius:18px; margin-bottom:10px; cursor:pointer; background:${id===state.currentEventId?'#f4f7fe':'transparent'}; color:${id===state.currentEventId?'var(--accent)':'var(--text-main)'}; font-weight:700;">
+        ${id===state.currentEventId ? '🔹 ' : ''}${ev.name}
       </div>
     `).join('');
 
@@ -246,18 +272,17 @@
     document.getElementById("current-event-name").textContent = ev.name;
     document.getElementById("admin-ev-edit").style.display = (state.currentUser.role == 0) ? "block" : "none";
 
-    // Cat Filters
-    let cHtml = `<div class="icon-filter ${state.catFilter==='all'?'active':''}" onclick="state.catFilter='all';render()">•</div>`;
+    // Filters
+    let cHtml = `<button class="btn-filter ${state.catFilter==='all'?'active':''}" onclick="state.catFilter='all';render()">🌍</button>`;
     Object.entries(CATEGORIES).forEach(([k, c]) => {
-      cHtml += `<div class="icon-filter ${state.catFilter===k?'active':''}" onclick="state.catFilter='${k}';render()">${c.icon}</div>`;
+      cHtml += `<button class="btn-filter ${state.catFilter===k?'active':''}" onclick="state.catFilter='${k}';render()">${c.icon}</button>`;
     });
     document.getElementById("cat-filters").innerHTML = cHtml;
 
-    // User Filters
-    const users = [...new Set((ev.tasks || []).map(t => t.assignee).filter(Boolean))];
-    let uHtml = `<div class="user-filter ${state.userFilter==='all'?'active':''}" onclick="state.userFilter='all';render()">Alle</div>`;
-    uHtml += `<div class="user-filter ${state.userFilter===state.currentUser.name?'active':''}" onclick="state.userFilter='${state.currentUser.name}';render()">Meine Aufgaben</div>`;
-    users.forEach(u => { if(u !== state.currentUser.name) uHtml += `<div class="user-filter ${state.userFilter===u?'active':''}" onclick="state.userFilter='${u}';render()">${u}</div>`; });
+    const uList = [...new Set((ev.tasks || []).map(t => t.assignee).filter(Boolean))];
+    let uHtml = `<div class="user-chip ${state.userFilter==='all'?'active':''}" onclick="state.userFilter='all';render()">Alle</div>`;
+    uHtml += `<div class="user-chip ${state.userFilter===state.currentUser.name?'active':''}" onclick="state.userFilter='${state.currentUser.name}';render()">Meine Aufgaben</div>`;
+    uList.forEach(u => { if(u !== state.currentUser.name) uHtml += `<div class="user-chip ${state.userFilter===u?'active':''}" onclick="state.userFilter='${u}';render()">${u}</div>`; });
     document.getElementById("user-filters").innerHTML = uHtml;
 
     // Logic
@@ -265,23 +290,33 @@
     if(state.catFilter !== 'all') tasks = tasks.filter(t => t.category === state.catFilter);
     if(state.userFilter !== 'all') tasks = tasks.filter(t => t.assignee === state.userFilter);
 
+    // Stats
     document.getElementById("stat-progress").textContent = (tasks.length ? Math.round(tasks.filter(t=>t.done).length/tasks.length*100) : 0) + "%";
     document.getElementById("stat-budget").textContent = "€" + tasks.reduce((s, t) => s + (parseFloat(t.costI) || 0), 0).toLocaleString();
     const dLeft = ev.date ? Math.ceil((new Date(ev.date) - new Date()) / 86400000) : "-";
     document.getElementById("stat-days").textContent = dLeft;
 
+    // Grid Rendering
     document.getElementById("task-list").innerHTML = tasks.sort((a,b)=>a.done-b.done).map(t => {
       let diff = 999; if(ev.date) { const dl = new Date(new Date(ev.date).getTime()-(t.weeksBefore||0)*7*86400000); diff = Math.ceil((dl-new Date())/86400000); }
       const cat = CATEGORIES[t.category] || CATEGORIES.sonstiges;
+      
       return `
-        <div class="task-card ${t.done?'status-done':(diff<0?'status-overdue':(diff<=7?'status-urgent':''))}">
-          <input type="checkbox" class="task-check" ${t.done?'checked':''} onchange="toggleTask(${t.id})">
-          <div style="background:${cat.color}" class="cat-dot"></div>
-          <div class="task-info" style="flex:1" onclick="openEdit(${t.id})">
-            <div style="font-weight:700; font-size:15px; margin-bottom:2px">${t.title}</div>
-            <div style="font-size:12px; color:var(--sub)">${t.assignee||'Offen'} • ${t.done?'Erledigt':(diff<0?'Überfällig':diff+' Tage')}</div>
+        <div class="task-tile ${t.done?'done':''}">
+          <div class="tile-header">
+            <span class="category-tag" style="background:${cat.color}22; color:${cat.color}">${cat.icon} ${cat.label}</span>
+            <input type="checkbox" style="width:20px; height:20px; accent-color:var(--accent);" ${t.done?'checked':''} onchange="toggleTask(${t.id})">
           </div>
-          <span style="color:#e5e7eb" onclick="openEdit(${t.id})">〉</span>
+          <div class="tile-title" onclick="openEdit(${t.id})">${t.title}</div>
+          <div class="tile-footer">
+            <div class="assignee-info">
+              <div class="assignee-avatar">${(t.assignee||'?').charAt(0).toUpperCase()}</div>
+              ${t.assignee||'Offen'}
+            </div>
+            <div class="due-badge ${diff<0?'overdue':'upcoming'}">
+              ${t.done ? '✓' : (diff < 0 ? 'Fällig!' : 'in ' + diff + ' T.')}
+            </div>
+          </div>
         </div>`;
     }).join('');
   }
@@ -289,7 +324,7 @@
   // Action Functions
   function toggleMenu() { document.getElementById("sidebar").classList.toggle("sidebar-hidden"); document.getElementById("overlay").style.display = document.getElementById("sidebar").classList.contains("sidebar-hidden") ? "none" : "block"; }
   function selectEvent(id) { state.currentEventId = id; render(); toggleMenu(); }
-  function closeModals() { document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none'); }
+  function closeModals() { document.querySelectorAll('.modal-frame').forEach(m => m.style.display = 'none'); }
   
   function openEdit(id) {
     activeTaskId = id;
@@ -324,6 +359,7 @@
   }
 
   function addTask() {
+    if(!state.currentEventId) return;
     const tasks = state.events[state.currentEventId].tasks || [];
     const id = Date.now();
     tasks.push({ id, title: "Neue Aufgabe", category: "sonstiges", done: false, weeksBefore: 1, assignee: state.currentUser.name });
@@ -348,18 +384,16 @@
     const orig = state.events[state.currentEventId];
     const newName = prompt("Name der Kopie:", orig.name + " Kopie");
     if(!newName) return;
-    const newId = "ev_" + Date.now();
-    db.ref('festplaner_v3/events/' + newId).set({ name: newName, date: orig.date||"", tasks: (orig.tasks||[]).map(t=>({...t, done:false, costI:0})) }).then(closeModals);
+    db.ref('festplaner_v3/events/' + "ev_" + Date.now()).set({ name: newName, date: orig.date||"", tasks: (orig.tasks||[]).map(t=>({...t, done:false, costI:0})) }).then(closeModals);
   }
 
   function deleteEvent() { if(confirm("Löschen?")) { db.ref('festplaner_v3/events/' + state.currentEventId).remove(); state.currentEventId = null; closeModals(); } }
   function deleteTask() { if(confirm("Löschen?")) { const tasks = state.events[state.currentEventId].tasks.filter(x => x.id !== activeTaskId); db.ref('festplaner_v3/events/' + state.currentEventId + '/tasks').set(tasks); closeModals(); } }
   
   function saveNewEvent() {
-    const name = prompt("Name des Festes:");
+    const name = prompt("Name des neuen Festes:");
     if(name) db.ref('festplaner_v3/events/' + "ev_" + Date.now()).set({ name, date: "", tasks: [] });
   }
-  function openEventModal() { saveNewEvent(); }
 </script>
 </body>
 </html>
