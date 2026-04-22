@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>🎪 Vereins-Manager Pro</title>
+<title>🎪 Vereins-Manager v4 PRO</title>
 <style>
   :root { --bg: #0d0d14; --panel: #16213e; --accent: #c8a45a; --text: #e8e8f0; --danger: #ff4444; --warning: #ffbb33; --safe: #00c851; }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -25,8 +25,7 @@
   .task-notes-preview { font-size: 11px; color: #a0a0c0; margin-top: 4px; font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   /* UI Elements */
-  .btn { padding: 10px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; font-size: 13px; text-align: center; transition: opacity 0.2s; }
-  .btn:active { opacity: 0.7; }
+  .btn { padding: 10px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; font-size: 13px; text-align: center; }
   .btn-primary { background: var(--accent); color: #000; }
   .btn-ghost { background: #1a1a30; color: #fff; border: 1px solid #3a3a6a; }
   .btn-danger { background: var(--danger); color: #fff; }
@@ -57,7 +56,7 @@
 
 <aside id="sidebar" class="sidebar-hidden">
   <div style="padding:20px; border-bottom:1px solid #2a2a4a">
-    <button class="btn btn-primary" style="width:100%" onclick="selectEvent('home')">🏠 Home (Alle Aufgaben)</button>
+    <button class="btn btn-primary" style="width:100%" onclick="selectEvent('home')">🏠 Meine Aufgaben</button>
   </div>
   <div id="event-list-ui" style="flex:1; overflow-y:auto; padding:10px"></div>
   <div id="admin-tools" style="padding:15px; border-top:1px solid #2a2a4a; display:none">
@@ -91,16 +90,8 @@
     <h3>Fest-Einstellungen</h3>
     <input type="text" id="ev-edit-name" class="form-input">
     <input type="date" id="ev-edit-date" class="form-input">
-    
-    <h4 style="margin: 10px 0; color: var(--accent); font-size: 14px;">👥 Rollen in diesem Fest</h4>
+    <h4 style="margin: 10px 0; color: var(--accent); font-size: 14px;">👥 Rollenverteilung</h4>
     <div id="event-roles-list" style="margin-bottom: 15px; max-height: 150px; overflow-y: auto;"></div>
-
-    <div style="border: 1px dashed #3a3a6a; padding: 15px; border-radius: 10px; margin-bottom: 15px;">
-        <h4 style="font-size: 11px; color: var(--accent); margin-bottom: 8px;">CSV Aufgaben-Import</h4>
-        <input type="file" id="csv-file" accept=".csv" style="font-size: 11px; margin-bottom: 8px; width: 100%;">
-        <button class="btn btn-ghost" style="width:100%; font-size: 11px;" onclick="importCSV()">📂 Import starten</button>
-    </div>
-
     <div style="display:flex; gap:10px">
       <button class="btn btn-danger" onclick="deleteEvent()">🗑️</button>
       <button class="btn btn-ghost" style="flex:1" onclick="document.getElementById('event-edit-modal').style.display='none'">Abbr.</button>
@@ -111,11 +102,12 @@
 
 <div id="edit-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:3000; align-items:center; justify-content:center; padding:20px">
   <div class="modal-box">
+    <h3 id="edit-modal-title">Aufgabe bearbeiten</h3>
     <input type="text" id="ed-title" class="form-input" placeholder="Titel">
     <select id="ed-assignee" class="form-input"></select>
     <textarea id="ed-notes" class="form-input" placeholder="Notizen..." style="height:100px"></textarea>
     <div style="display:flex; gap:10px">
-      <button class="btn btn-danger" onclick="deleteTask()">🗑️</button>
+      <button class="btn btn-danger" id="del-task-btn" onclick="deleteTask()">🗑️</button>
       <button class="btn btn-ghost" style="flex:1" onclick="document.getElementById('edit-modal').style.display='none'">Abbr.</button>
       <button class="btn btn-primary" style="flex:1" onclick="saveEdit()">Speichern</button>
     </div>
@@ -124,8 +116,8 @@
 
 <div id="user-mgmt-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:3500; align-items:center; justify-content:center; padding:20px">
   <div class="modal-box">
-    <h3>👥 Globale Benutzerverwaltung</h3>
-    <div id="user-list-admin" style="margin-bottom:15px; max-height: 200px; overflow-y: auto; border: 1px solid #333; border-radius: 10px; padding: 10px;"></div>
+    <h3>👥 Benutzerverwaltung</h3>
+    <div id="user-list-admin" style="margin-bottom:15px; max-height: 200px; overflow-y: auto;"></div>
     <input type="text" id="new-u-name" class="form-input" placeholder="Name">
     <input type="text" id="new-u-pass" class="form-input" placeholder="Passwort">
     <button class="btn btn-primary" style="width:100%" onclick="createNewUser()">User anlegen</button>
@@ -159,14 +151,17 @@
   function handleLogin() {
     const u = document.getElementById("login-user").value.toLowerCase().trim();
     const p = document.getElementById("login-pass").value.trim();
-    const user = (u === 'admin' && p === '1234') ? {name:'admin', pass:'1234', isAdmin: true} : state.users[u];
+    const adminUser = (u === 'admin' && p === '1234') ? {name:'admin', pass:'1234', isAdmin: true} : null;
+    const dbUser = state.users[u];
+    const user = adminUser || dbUser;
+
     if(user && user.pass === p) {
       state.currentUser = user;
       document.getElementById("login-screen").style.display = "none";
       if(user.isAdmin) document.getElementById("admin-tools").style.display = "block";
       document.getElementById("user-info").innerHTML = `User: <b>${user.name}</b>`;
       render();
-    } else { alert("Zugangsdaten nicht korrekt."); }
+    } else { alert("Fehler!"); }
   }
 
   function getMyRoleForEvent(evId) {
@@ -176,22 +171,18 @@
 
   function render() {
     if(!state.currentUser) return;
-    
     const sorted = Object.entries(state.events).sort((a,b) => new Date(a[1].date||0) - new Date(b[1].date||0));
     
-    // Sidebar Render
     document.getElementById("event-list-ui").innerHTML = sorted.map(([id, ev]) => {
         const role = getMyRoleForEvent(id);
         const openTasksForMe = (ev.tasks || []).filter(t => t.assignee === state.currentUser.name && !t.done);
-        
-        // Admin sieht immer alles / Planer sieht sein Fest immer / Helfer nur bei offenen Aufgaben
+        // Admin sieht alles, Planer sein Fest, Helfer nur bei Aufgaben
         const isVisible = state.currentUser.isAdmin || (role === 'planer') || (openTasksForMe.length > 0);
-        
         if(!isVisible) return '';
 
         return `<div style="padding:10px; background:#1a1a30; border-radius:8px; margin-bottom:5px; cursor:pointer; border:1px solid ${id===state.currentEventId?'var(--accent)':'transparent'}" onclick="selectEvent('${id}')">
             <div style="font-weight:bold; font-size:13px">${ev.name}</div>
-            <div class="role-badge">${role} ${openTasksForMe.length > 0 ? '• '+openTasksForMe.length+' offen' : ''}</div>
+            <div class="role-badge">${role} ${openTasksForMe.length > 0 ? '• '+openTasksForMe.length : ''}</div>
         </div>`;
     }).join('');
 
@@ -208,13 +199,15 @@
                 myTasks.forEach(t => html += renderTaskCard(t, evId));
             }
         });
-        taskList.innerHTML = html || "<p style='color:#7070a0; text-align:center; padding-top:20px;'>Keine anstehenden Aufgaben.</p>";
+        taskList.innerHTML = html || "<p style='color:#7070a0; text-align:center; padding-top:20px;'>Aktuell keine Aufgaben.</p>";
     } else {
         const ev = state.events[state.currentEventId];
         const role = getMyRoleForEvent(state.currentEventId);
         document.getElementById("current-event-name").textContent = ev.name;
         document.getElementById("admin-ev-edit").style.display = (role === 'planer') ? "block" : "none";
-        document.getElementById("add-btn").style.display = (role === 'planer') ? "block" : "none";
+        
+        // Helfer dürfen jetzt auch Aufgaben erstellen, wenn sie Zugriff haben
+        document.getElementById("add-btn").style.display = (role !== 'keine') ? "block" : "none";
         
         let tasks = ev.tasks || [];
         if(role === 'exklusiv' && !state.currentUser.isAdmin) {
@@ -226,40 +219,22 @@
 
   function renderTaskCard(t, evId) {
     const role = getMyRoleForEvent(evId);
-    const canEdit = (role === 'planer');
+    // Helfer dürfen nur eigene löschen/bearbeiten, Planer/Admin alles
+    const canEdit = (role === 'planer') || (t.assignee === state.currentUser.name) || (!t.assignee && role !== 'keine');
+    
     return `<div class="task-card ${t.done?'status-done':''}">
         <input type="checkbox" ${t.done?'checked':''} onchange="toggleTask('${evId}', ${t.id})" style="width:20px; height:20px">
         <div class="task-info" onclick="${canEdit ? `openEdit('${evId}', ${t.id})` : ''}">
           <div style="font-weight:bold; font-size:14px;">${t.title}</div>
-          <div style="font-size:11px; color:#7070a0">${t.assignee || 'Nicht zugewiesen'}</div>
+          <div style="font-size:11px; color:#7070a0">${t.assignee || 'Offen'}</div>
           ${t.notes ? `<div class="task-notes-preview">📝 ${t.notes}</div>` : ''}
         </div>
       </div>`;
   }
 
-  function importCSV() {
-    const fileInput = document.getElementById('csv-file');
-    if(!fileInput.files.length) return alert("Bitte Datei wählen");
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        const lines = e.target.result.split(/\r?\n/);
-        const tasks = state.events[state.currentEventId].tasks || [];
-        lines.forEach((line, i) => {
-            if(line.trim() === "" || (i === 0 && line.toLowerCase().includes("titel"))) return;
-            const delimiter = line.includes(';') ? ';' : ',';
-            const cols = line.split(delimiter).map(c => c.trim().replace(/^"|"$/g, ''));
-            if(cols[0]) tasks.push({ id: Date.now()+Math.random(), title: cols[0], notes: cols[3]||"", done: false, assignee: "" });
-        });
-        db.ref(`festplaner_v4/events/${state.currentEventId}/tasks`).set(tasks);
-        alert("Import abgeschlossen!");
-        document.getElementById('event-edit-modal').style.display='none';
-    };
-    reader.readAsText(fileInput.files[0]);
-  }
-
   function selectEvent(id) { state.currentEventId = id; render(); if(window.innerWidth < 1024) toggleMenu(); }
   function toggleMenu() { document.getElementById("sidebar").classList.toggle("sidebar-hidden"); document.getElementById("overlay").style.display = document.getElementById("sidebar").classList.contains("sidebar-hidden") ? "none" : "block"; }
-  
+
   function openEventEdit() {
     const ev = state.events[state.currentEventId];
     document.getElementById("ev-edit-name").value = ev.name;
@@ -287,23 +262,23 @@
     const date = document.getElementById("ev-edit-date").value;
     if(name) { db.ref(`festplaner_v4/events/${state.currentEventId}`).update({name, date}); document.getElementById("event-edit-modal").style.display="none"; }
   }
-  function deleteEvent() { if(confirm("Dieses Fest und alle Aufgaben darin wirklich löschen?")) { db.ref(`festplaner_v4/events/${state.currentEventId}`).remove(); selectEvent('home'); document.getElementById("event-edit-modal").style.display="none"; } }
-
-  function toggleTask(evId, id) {
-    const tasks = [...state.events[evId].tasks];
-    const idx = tasks.findIndex(x => x.id === id);
-    tasks[idx].done = !tasks[idx].done;
-    db.ref(`festplaner_v4/events/${evId}/tasks`).set(tasks);
-  }
 
   function openEdit(evId, taskId) {
     activeTaskEventId = evId; activeTaskId = taskId;
     const t = state.events[evId].tasks.find(x => x.id === taskId);
+    const role = getMyRoleForEvent(evId);
+    
     document.getElementById("ed-title").value = t.title;
     document.getElementById("ed-notes").value = t.notes || "";
+    
+    // Assignee Liste bauen (OHNE ADMIN)
     const roles = state.events[evId].roles || {};
     const accessUsers = Object.keys(roles).filter(n => roles[n] !== 'keine');
     document.getElementById("ed-assignee").innerHTML = '<option value="">Offen</option>' + accessUsers.map(u => `<option value="${u}" ${t.assignee===u?'selected':''}>${u}</option>`).join('');
+    
+    // Nur Planer dürfen fremde Aufgaben löschen
+    document.getElementById("del-task-btn").style.display = (role === 'planer' || !t.assignee) ? "block" : "none";
+    
     document.getElementById("edit-modal").style.display = "flex";
   }
 
@@ -317,31 +292,42 @@
     document.getElementById("edit-modal").style.display = "none";
   }
 
-  function deleteTask() { if(confirm("Aufgabe löschen?")) { const tasks = state.events[activeTaskEventId].tasks.filter(x => x.id !== activeTaskId); db.ref(`festplaner_v4/events/${activeTaskEventId}/tasks`).set(tasks); document.getElementById("edit-modal").style.display="none"; } }
+  function toggleTask(evId, id) {
+    const tasks = [...state.events[evId].tasks];
+    const idx = tasks.findIndex(x => x.id === id);
+    tasks[idx].done = !tasks[idx].done;
+    db.ref(`festplaner_v4/events/${evId}/tasks`).set(tasks);
+  }
 
+  function deleteTask() { if(confirm("Löschen?")) { const tasks = state.events[activeTaskEventId].tasks.filter(x => x.id !== activeTaskId); db.ref(`festplaner_v4/events/${activeTaskEventId}/tasks`).set(tasks); document.getElementById("edit-modal").style.display="none"; } }
+  
   function addTask() {
     const tasks = state.events[state.currentEventId].tasks || [];
     const id = Date.now();
-    tasks.push({ id, title: "Neue Aufgabe", done: false, assignee: "" });
+    // Neue Aufgaben standardmäßig dem Ersteller zuweisen (wenn er kein Planer ist)
+    const role = getMyRoleForEvent(state.currentEventId);
+    const defaultAssignee = (role === 'planer') ? "" : state.currentUser.name;
+    
+    tasks.push({ id, title: "Neue Aufgabe", done: false, assignee: defaultAssignee, notes: "" });
     db.ref(`festplaner_v4/events/${state.currentEventId}/tasks`).set(tasks);
     openEdit(state.currentEventId, id);
   }
 
   function openUserMgmt() {
-    document.getElementById("user-list-admin").innerHTML = Object.values(state.users).map(u => `<div style="display:flex; justify-content:space-between; padding:5px; border-bottom:1px solid #222;"><span>${u.name}</span><button onclick="deleteGlobalUser('${u.name}')" style="background:none; border:none; color:red">✖</button></div>`).join('');
+    document.getElementById("user-list-admin").innerHTML = Object.values(state.users).map(u => `<div style="display:flex; justify-content:space-between; padding:5px; border-bottom:1px solid #222;"><span>${u.name}</span><button onclick="deleteGlobalUser('${u.name}')" style="color:red; background:none; border:none;">✖</button></div>`).join('');
     document.getElementById("user-mgmt-modal").style.display = "flex";
   }
 
   function createNewUser() {
     const n = document.getElementById("new-u-name").value.toLowerCase().trim();
     const p = document.getElementById("new-u-pass").value.trim();
-    if(n && p) { db.ref('festplaner_v4/users/'+n).set({name:n, pass:p}); document.getElementById("new-u-name").value=""; document.getElementById("new-u-pass").value=""; openUserMgmt(); }
+    if(n && p && n !== 'admin') { db.ref('festplaner_v4/users/'+n).set({name:n, pass:p}); document.getElementById("new-u-name").value=""; document.getElementById("new-u-pass").value=""; openUserMgmt(); }
   }
 
-  function deleteGlobalUser(n) { if(confirm("Benutzer global löschen?")) db.ref('festplaner_v4/users/'+n).remove().then(openUserMgmt); }
+  function deleteGlobalUser(n) { if(confirm("User löschen?")) db.ref('festplaner_v4/users/'+n).remove(); }
 
   function openEventModal() {
-    const n = prompt("Name des neuen Fests?");
+    const n = prompt("Name des Fests?");
     if(n) { const id = 'ev_'+Date.now(); db.ref('festplaner_v4/events/'+id).set({name:n, tasks: [], roles: {}}); }
   }
 </script>
