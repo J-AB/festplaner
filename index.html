@@ -23,23 +23,22 @@
   .stat-val { display: block; font-size: 14px; font-weight: bold; color: var(--accent); }
   .stat-lbl { font-size: 9px; color: #7070a0; }
 
-  /* Task Cards */
+  /* Cards */
   #main-scroll { flex: 1; overflow-y: auto; padding: 15px; }
   .task-card { background: #0f0f20; border-radius: 14px; padding: 15px; border: 1px solid #252545; border-left: 5px solid #3a3a6a; margin-bottom: 10px; display: flex; align-items: center; gap: 12px; }
-  .status-overdue { border-left-color: var(--danger); }
   .status-done { opacity: 0.5; border-left-color: var(--safe); }
   .task-info { flex: 1; min-width: 0; }
 
-  /* UI Elements */
-  .btn { padding: 10px 15px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; }
+  /* Buttons & Inputs */
+  .btn { padding: 10px 15px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; }
   .btn-primary { background: var(--accent); color: #000; }
   .btn-ghost { background: #1a1a30; color: #fff; border: 1px solid #3a3a6a; }
+  .btn-danger { background: #4a1a1a; color: #ff8888; border: 1px solid #702020; }
   .form-input { width: 100%; background: #0d0d1a; border: 1px solid #3a3a6a; border-radius: 10px; color: #fff; padding: 12px; margin-bottom: 12px; font-size: 16px; }
 
   /* Login */
   #login-screen { position: fixed; inset: 0; background: var(--bg); z-index: 4000; display: flex; align-items: center; justify-content: center; padding: 20px; }
-  
-  .role-badge { font-size: 10px; padding: 2px 6px; border-radius: 4px; background: #3a3a6a; color: #fff; margin-left: 5px; }
+  .modal-box { background: #12121f; border: 1px solid #3a3a6a; border-radius: 20px; padding: 25px; width: 100%; max-width: 450px; max-height: 85vh; overflow-y: auto; }
 
   @media (min-width: 1024px) { #sidebar { position: relative; transform: none; } #overlay { display: none !important; } }
 </style>
@@ -49,24 +48,25 @@
 <div id="overlay" onclick="toggleMenu()"></div>
 
 <div id="login-screen">
-  <div style="background: #12121f; padding: 30px; border-radius: 20px; border: 1px solid #3a3a6a; width: 100%; max-width: 350px;">
+  <div class="modal-box" style="max-width: 350px;">
     <h2 style="text-align:center; margin-bottom:20px">🎪 Vereins-Login</h2>
-    <input type="text" id="login-user" class="form-input" placeholder="Benutzername">
-    <input type="password" id="login-pass" class="form-input" placeholder="Passwort">
+    <input type="text" id="login-user" class="form-input" placeholder="Benutzername" onkeypress="if(event.key === 'Enter') document.getElementById('login-pass').focus()">
+    <input type="password" id="login-pass" class="form-input" placeholder="Passwort" onkeypress="if(event.key === 'Enter') handleLogin()">
     <button class="btn btn-primary" style="width:100%" onclick="handleLogin()">Einloggen</button>
     <p id="login-msg" style="color:var(--danger); margin-top:15px; text-align:center; font-size:13px"></p>
+    <div style="margin-top:20px; font-size:11px; color:#505070; text-align:center">Erster Login: admin / 1234</div>
   </div>
 </div>
 
 <aside id="sidebar" class="sidebar-hidden">
-  <div style="padding:20px; border-bottom:1px solid #2a2a4a"><h3>📂 Feste</h3></div>
-  <div class="event-list" id="event-list-ui" style="flex:1; overflow-y:auto; padding:10px"></div>
+  <div style="padding:20px; border-bottom:1px solid #2a2a4a"><h3>📂 Deine Feste</h3></div>
+  <div id="event-list-ui" style="flex:1; overflow-y:auto; padding:10px"></div>
   <div id="admin-tools" style="padding:15px; border-top:1px solid #2a2a4a; display:none">
-    <button class="btn btn-ghost" style="width:100%; margin-bottom:10px" onclick="openUserMgmt()">👥 User verwalten</button>
-    <button class="btn btn-ghost" style="width:100%" onclick="openEventModal()">+ Neues Fest</button>
+    <button class="btn btn-ghost" style="width:100%; margin-bottom:10px" onclick="openUserMgmt()">👥 User & Rollen</button>
+    <button class="btn btn-ghost" style="width:100%" onclick="openEventModal()">+ Neues Fest / Kopieren</button>
   </div>
   <div style="padding:15px; background: #050510;">
-    <div id="user-info" style="font-size:12px; margin-bottom:10px"></div>
+    <div id="user-info" style="font-size:11px; margin-bottom:10px; color:var(--accent)"></div>
     <button class="btn btn-danger" style="width:100%" onclick="location.reload()">Abmelden</button>
   </div>
 </aside>
@@ -79,48 +79,62 @@
     </div>
     <div class="stats-grid">
       <div class="stat-card"><span class="stat-lbl">Fortschritt</span><span class="stat-val" id="stat-progress">0%</span></div>
-      <div class="stat-card"><span class="stat-lbl">Finanzen</span><span class="stat-val" id="stat-budget">***</span></div>
+      <div class="stat-card"><span class="stat-lbl">Kosten (Ist)</span><span class="stat-val" id="stat-budget">***</span></div>
       <div class="stat-card"><span class="stat-lbl">Tage</span><span class="stat-val" id="stat-days">-</span></div>
     </div>
   </header>
 
   <div id="main-scroll">
     <div id="task-list"></div>
-    <button class="btn btn-primary" onclick="addTask()" style="width:100%; margin-top:20px">+ Aufgabe erstellen</button>
+    <button class="btn btn-primary" id="add-btn" onclick="addTask()" style="width:100%; margin-top:20px; position:sticky; bottom:0; display:none">+ Aufgabe hinzufügen</button>
   </div>
 </main>
 
 <div id="user-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:3000; align-items:center; justify-content:center; padding:20px">
-  <div style="background:#12121f; padding:20px; border-radius:20px; width:100%; max-width:400px; max-height:80vh; overflow-y:auto">
+  <div class="modal-box">
     <h3>👥 Benutzerverwaltung</h3>
     <div id="user-list-ui" style="margin:15px 0"></div>
     <hr style="border:0; border-top:1px solid #3a3a6a; margin:15px 0">
-    <h4>Neuer User</h4>
-    <input type="text" id="new-u-name" class="form-input" placeholder="Name">
+    <h4>Neuen User anlegen</h4>
+    <input type="text" id="new-u-name" class="form-input" placeholder="Benutzername">
     <input type="text" id="new-u-pass" class="form-input" placeholder="Passwort">
     <select id="new-u-role" class="form-input">
-      <option value="3">Mitglied (nur eigene Todos)</option>
-      <option value="2">Mitglied wichtig (alle Todos)</option>
+      <option value="3">Standard (nur eigene Todos)</option>
+      <option value="2">Wichtig (sieht alle Todos)</option>
       <option value="1">Kassierer (alle + Finanzen)</option>
       <option value="0">Admin (alles)</option>
     </select>
-    <button class="btn btn-primary" style="width:100%" onclick="addUser()">User hinzufügen</button>
+    <button class="btn btn-primary" style="width:100%" onclick="addUser()">Hinzufügen</button>
     <button class="btn btn-ghost" style="width:100%; margin-top:10px" onclick="document.getElementById('user-modal').style.display='none'">Schließen</button>
   </div>
 </div>
 
+<div id="event-modal-ui" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:3000; align-items:center; justify-content:center; padding:20px">
+  <div class="modal-box">
+    <h3>Neues Fest / Kopieren</h3>
+    <input type="text" id="ev-name" class="form-input" placeholder="Name (z.B. Musikfest 2027)">
+    <input type="date" id="ev-date" class="form-input">
+    <label>Kopieren von (optional):</label>
+    <select id="ev-copy-source" class="form-input"></select>
+    <button class="btn btn-primary" style="width:100%" onclick="saveEvent()">Fest anlegen</button>
+    <button class="btn btn-ghost" style="width:100%; margin-top:10px" onclick="document.getElementById('event-modal-ui').style.display='none'">Abbrechen</button>
+  </div>
+</div>
+
 <div id="edit-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:3000; align-items:center; justify-content:center; padding:20px">
-  <div style="background:#12121f; padding:20px; border-radius:20px; width:100%; max-width:400px">
-    <h3 id="edit-title-head">Aufgabe</h3>
-    <input type="text" id="ed-title" class="form-input" placeholder="Was ist zu tun?">
+  <div class="modal-box">
+    <h3>Aufgabe bearbeiten</h3>
+    <input type="text" id="ed-title" class="form-input">
     <label>Zuständig</label>
     <select id="ed-assignee" class="form-input"></select>
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px" id="finance-fields">
+    <div id="finance-fields" style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
       <div><label>Budget €</label><input type="number" id="ed-cost-p" class="form-input"></div>
       <div><label>Ist €</label><input type="number" id="ed-cost-i" class="form-input"></div>
     </div>
+    <textarea id="ed-notes" class="form-input" placeholder="Notizen / Links..." rows="3"></textarea>
     <div style="display:flex; gap:10px">
-      <button class="btn btn-ghost" style="flex:1" onclick="document.getElementById('edit-modal').style.display='none'">Abbrechen</button>
+      <button class="btn btn-danger" onclick="deleteTask()">🗑️</button>
+      <button class="btn btn-ghost" style="flex:1" onclick="document.getElementById('edit-modal').style.display='none'">Abbr.</button>
       <button class="btn btn-primary" style="flex:1" onclick="saveEdit()">Speichern</button>
     </div>
   </div>
@@ -141,6 +155,19 @@
 
   let state = { events: {}, users: {}, currentUser: null, currentEventId: null };
 
+  // DATA BRIDGE: Importiert alte Daten
+  async function runMigration() {
+    const oldSnap = await db.ref('festplaner_v2').once('value');
+    const oldData = oldSnap.val();
+    if (oldData && oldData.events) {
+      const currentSnap = await db.ref('festplaner_v3/events').once('value');
+      if (!currentSnap.exists()) {
+        await db.ref('festplaner_v3/events').set(oldData.events);
+      }
+    }
+  }
+  runMigration();
+
   // Sync Data
   db.ref('festplaner_v3').on('value', (snap) => {
     const data = snap.val();
@@ -149,21 +176,21 @@
       state.users = data.users || {};
       render();
     } else {
-      // Setup Initial Admin
       state.users["admin"] = { name: "admin", pass: "1234", role: 0 };
       db.ref('festplaner_v3/users').set(state.users);
     }
   });
 
   function handleLogin() {
-    const u = document.getElementById("login-user").value.toLowerCase();
-    const p = document.getElementById("login-pass").value;
+    const u = document.getElementById("login-user").value.toLowerCase().trim();
+    const p = document.getElementById("login-pass").value.trim();
     const user = state.users[u];
     if(user && user.pass === p) {
       state.currentUser = user;
       document.getElementById("login-screen").style.display = "none";
       if(user.role == 0) document.getElementById("admin-tools").style.display = "block";
-      document.getElementById("user-info").innerHTML = `Eingeloggt als: <b>${user.name}</b>`;
+      document.getElementById("user-info").innerHTML = `User: <b>${user.name}</b>`;
+      document.getElementById("add-btn").style.display = "block";
       render();
     } else {
       document.getElementById("login-msg").textContent = "Falsche Zugangsdaten!";
@@ -173,9 +200,10 @@
   function render() {
     if(!state.currentUser) return;
 
-    // Sidebar Events
-    document.getElementById("event-list-ui").innerHTML = Object.entries(state.events).map(([id, ev]) => `
-      <div style="padding:15px; background:#1a1a30; border-radius:10px; margin-bottom:8px; border:1px solid ${id===state.currentEventId?'#c8a45a':'transparent'}" onclick="selectEvent('${id}')">
+    // Sidebar Feste
+    const evList = document.getElementById("event-list-ui");
+    evList.innerHTML = Object.entries(state.events).map(([id, ev]) => `
+      <div style="padding:12px; background:#1a1a30; border-radius:10px; margin-bottom:8px; border:1px solid ${id===state.currentEventId?'var(--accent)':'transparent'}; cursor:pointer" onclick="selectEvent('${id}')">
         <b>${ev.name}</b>
       </div>
     `).join('');
@@ -184,7 +212,6 @@
     const ev = state.events[state.currentEventId];
     document.getElementById("current-event-name").textContent = ev.name;
 
-    // Filter Tasks based on Role
     let tasks = ev.tasks || [];
     if(state.currentUser.role == 3) {
       tasks = tasks.filter(t => t.assignee === state.currentUser.name);
@@ -196,44 +223,76 @@
     
     if(state.currentUser.role <= 1) {
       const budget = tasks.reduce((sum, t) => sum + (parseFloat(t.costI) || 0), 0);
-      document.getElementById("stat-budget").textContent = budget + " €";
-    } else {
-      document.getElementById("stat-budget").textContent = "***";
+      document.getElementById("stat-budget").textContent = budget.toLocaleString() + " €";
     }
+    const days = Math.ceil((new Date(ev.date) - new Date()) / 86400000);
+    document.getElementById("stat-days").textContent = isNaN(days) ? "-" : days;
 
     // Task List
     document.getElementById("task-list").innerHTML = tasks.map(t => `
       <div class="task-card ${t.done?'status-done':''}">
-        <input type="checkbox" ${t.done?'checked':''} onchange="toggleTask(${t.id})" style="width:22px; height:22px">
+        <input type="checkbox" ${t.done?'checked':''} onchange="toggleTask(${t.id})" style="width:24px; height:24px">
         <div class="task-info" onclick="openEdit(${t.id})">
           <div style="font-weight:bold">${t.title}</div>
           <div style="font-size:11px; color:#7070a0">👤 ${t.assignee || 'Offen'}</div>
         </div>
-        <span onclick="openEdit(${t.id})">✏️</span>
+        <span onclick="openEdit(${t.id})" style="font-size:20px">✏️</span>
       </div>
     `).join('');
   }
 
-  function toggleMenu() { document.getElementById("sidebar").classList.toggle("sidebar-hidden"); }
+  function toggleMenu() { 
+    const isHidden = document.getElementById("sidebar").classList.toggle("sidebar-hidden");
+    document.getElementById("overlay").style.display = isHidden ? "none" : "block"; 
+  }
   function selectEvent(id) { state.currentEventId = id; render(); toggleMenu(); }
 
   function openUserMgmt() {
     document.getElementById("user-modal").style.display = "flex";
     document.getElementById("user-list-ui").innerHTML = Object.values(state.users).map(u => `
-      <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:13px">
+      <div style="display:flex; justify-content:space-between; margin-bottom:8px; background:#0a0a15; padding:8px; border-radius:5px">
         <span>${u.name} (Lvl ${u.role})</span>
-        <button onclick="deleteUser('${u.name}')" style="color:red; background:none; border:none">X</button>
+        ${u.name !== 'admin' ? `<button onclick="deleteUser('${u.name}')" style="color:red; background:none; border:none">X</button>` : ''}
       </div>
     `).join('');
   }
 
   function addUser() {
-    const name = document.getElementById("new-u-name").value.toLowerCase();
-    const pass = document.getElementById("new-u-pass").value;
+    const name = document.getElementById("new-u-name").value.toLowerCase().trim();
+    const pass = document.getElementById("new-u-pass").value.trim();
     const role = document.getElementById("new-u-role").value;
     if(!name || !pass) return;
     state.users[name] = { name, pass, role: parseInt(role) };
     db.ref('festplaner_v3/users').set(state.users);
+    openUserMgmt();
+  }
+
+  function deleteUser(name) {
+    if(confirm(name + " wirklich löschen?")) {
+      delete state.users[name];
+      db.ref('festplaner_v3/users').set(state.users);
+      openUserMgmt();
+    }
+  }
+
+  function openEventModal() {
+    document.getElementById("event-modal-ui").style.display = "flex";
+    const sel = document.getElementById("ev-copy-source");
+    sel.innerHTML = '<option value="none">Kein Kopieren</option>' + 
+      Object.entries(state.events).map(([id, ev]) => `<option value="${id}">${ev.name}</option>`).join('');
+  }
+
+  function saveEvent() {
+    const name = document.getElementById("ev-name").value;
+    const date = document.getElementById("ev-date").value;
+    const sourceId = document.getElementById("ev-copy-source").value;
+    if(!name || !date) return alert("Name und Datum fehlen!");
+    const id = "ev_" + Date.now();
+    let tasks = [];
+    if(sourceId !== "none") tasks = state.events[sourceId].tasks.map(t => ({...t, done:false, costI:0}));
+    state.events[id] = { name, date, tasks };
+    db.ref('festplaner_v3/events').set(state.events);
+    document.getElementById("event-modal-ui").style.display = "none";
   }
 
   let activeTaskId = null;
@@ -241,20 +300,23 @@
     activeTaskId = id;
     const t = state.events[state.currentEventId].tasks.find(x => x.id === id);
     document.getElementById("ed-title").value = t.title;
+    document.getElementById("ed-cost-p").value = t.costP || 0;
+    document.getElementById("ed-cost-i").value = t.costI || 0;
+    document.getElementById("ed-notes").value = t.notes || "";
     document.getElementById("finance-fields").style.display = (state.currentUser.role <= 1) ? "grid" : "none";
     
     const sel = document.getElementById("ed-assignee");
-    sel.innerHTML = '<option value="">Nicht zugewiesen</option>' + 
+    sel.innerHTML = '<option value="">Offen</option>' + 
       Object.values(state.users).map(u => `<option value="${u.name}" ${t.assignee===u.name?'selected':''}>${u.name}</option>`).join('');
     
     document.getElementById("edit-modal").style.display = "flex";
   }
 
   function saveEdit() {
-    const ev = state.events[state.currentEventId];
-    const t = ev.tasks.find(x => x.id === activeTaskId);
+    const t = state.events[state.currentEventId].tasks.find(x => x.id === activeTaskId);
     t.title = document.getElementById("ed-title").value;
     t.assignee = document.getElementById("ed-assignee").value;
+    t.notes = document.getElementById("ed-notes").value;
     if(state.currentUser.role <= 1) {
       t.costP = document.getElementById("ed-cost-p").value;
       t.costI = document.getElementById("ed-cost-i").value;
@@ -263,11 +325,19 @@
     document.getElementById("edit-modal").style.display = "none";
   }
 
+  function deleteTask() {
+    if(confirm("Löschen?")) {
+      state.events[state.currentEventId].tasks = state.events[state.currentEventId].tasks.filter(x => x.id !== activeTaskId);
+      db.ref('festplaner_v3/events').set(state.events);
+      document.getElementById("edit-modal").style.display = "none";
+    }
+  }
+
   function addTask() {
     const id = Date.now();
-    if(!state.events[state.currentEventId]) return alert("Bitte erst ein Fest wählen/erstellen");
+    if(!state.currentEventId) return alert("Wähle ein Fest");
     if(!state.events[state.currentEventId].tasks) state.events[state.currentEventId].tasks = [];
-    state.events[state.currentEventId].tasks.push({ id, title: "Neue Aufgabe", assignee: state.currentUser.name, done: false });
+    state.events[state.currentEventId].tasks.push({ id, title: "Neue Aufgabe", assignee: "", done: false });
     db.ref('festplaner_v3/events').set(state.events);
     openEdit(id);
   }
@@ -275,14 +345,6 @@
   function toggleTask(id) {
     const t = state.events[state.currentEventId].tasks.find(x => x.id === id);
     t.done = !t.done;
-    db.ref('festplaner_v3/events').set(state.events);
-  }
-
-  function openEventModal() {
-    const name = prompt("Name des Fests?");
-    if(!name) return;
-    const id = "ev_" + Date.now();
-    state.events[id] = { name, tasks: [] };
     db.ref('festplaner_v3/events').set(state.events);
   }
 </script>
