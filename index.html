@@ -10,6 +10,7 @@
   
   /* Login Screen */
   #login-screen { position: fixed; inset: 0; background: #0d0d14; z-index: 1000; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+  .login-box { background: #1a1a2e; padding: 30px; border-radius: 20px; border: 1px solid #3a3a6a; text-align: center; width: 90%; max-width: 350px; }
   
   /* Header */
   #header { background: linear-gradient(135deg,#1a1a2e,#16213e 50%,#0f3460); border-bottom: 1px solid #2a2a5a; padding: 20px; position: sticky; top: 0; z-index: 50; }
@@ -37,11 +38,11 @@
 
   /* Task Cards & Dynamic Colors */
   #task-list { display: flex; flex-direction: column; gap: 12px; }
-  .task-card { background: #0f0f20; border-radius: 12px; padding: 16px; border: 1px solid #252545; border-left: 5px solid #3a3a6a; }
+  .task-card { background: #0f0f20; border-radius: 12px; padding: 16px; border: 1px solid #252545; border-left: 5px solid #3a3a6a; position: relative; }
   
-  .status-overdue { border-left-color: #ff4444; background: #201010; } /* Rot */
-  .status-urgent { border-left-color: #ffbb33; background: #201a10; }  /* Gelb */
-  .status-done { opacity: 0.5; border-left-color: #00c851; background: #0a0a10; } /* Grün/Grau */
+  .status-overdue { border-left-color: #ff4444; background: #251515; } 
+  .status-urgent { border-left-color: #ffbb33; background: #252015; }  
+  .status-done { opacity: 0.5; border-left-color: #00c851; background: #0a0a10; } 
 
   .task-main { display: flex; gap: 15px; }
   .task-info { flex: 1; }
@@ -53,18 +54,21 @@
   /* Modals */
   .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: none; align-items: center; justify-content: center; z-index: 100; padding: 15px; }
   .modal-box { background: #12121f; border: 1px solid #3a3a6a; border-radius: 16px; padding: 24px; width: 100%; max-width: 450px; }
-  .form-input { width: 100%; background: #0d0d1a; border: 1px solid #3a3a6a; border-radius: 8px; color: #fff; padding: 12px; margin-bottom: 15px; }
-  
-  @media (max-width: 600px) { .filter-row { flex-direction: column; align-items: stretch; } }
+  .form-input { width: 100%; background: #0d0d1a; border: 1px solid #3a3a6a; border-radius: 8px; color: #fff; padding: 12px; margin-bottom: 15px; font-size: 16px; }
+  label { font-size: 11px; color: #7070a0; margin-bottom: 5px; display: block; text-transform: uppercase; }
+
+  @media (max-width: 600px) { .filter-row { flex-direction: column; align-items: stretch; } .btn-add { width: 100%; order: -1; } }
 </style>
 </head>
 <body>
 
 <div id="login-screen">
-  <h2 style="margin-bottom: 20px;">🔒 Vereins-Login</h2>
-  <input type="password" id="login-pass" class="form-input" style="width: 250px;" placeholder="Passwort eingeben...">
-  <button class="btn-add" onclick="checkLogin()">Einloggen</button>
-  <p id="login-msg" style="color: #ff5555; margin-top: 10px; font-size: 13px;"></p>
+  <div class="login-box">
+    <h2 style="margin-bottom: 20px;">🔒 Vereins-Login</h2>
+    <input type="password" id="login-pass" class="form-input" style="text-align:center" placeholder="Passwort eingeben">
+    <button class="btn-add" style="width:100%" onclick="checkLogin()">Einloggen</button>
+    <p id="login-msg" style="color: #ff4444; margin-top: 15px; font-size: 14px; font-weight: bold;"></p>
+  </div>
 </div>
 
 <div id="header">
@@ -74,7 +78,7 @@
         <h1 id="header-verein">Lädt...</h1>
         <div class="festdate">Termin: <strong id="fest-date-label">...</strong></div>
       </div>
-      <button class="btn-ghost" onclick="openSettings()" style="background:none; border:none; font-size: 20px; cursor:pointer;">⚙️</button>
+      <button onclick="openSettings()" style="background:none; border:none; font-size: 24px; cursor:pointer;">⚙️</button>
     </div>
     <div class="progress-wrap">
       <div class="progress-label"><span id="progress-text">0/0</span><span id="progress-pct">0%</span></div>
@@ -99,14 +103,14 @@
 <div class="modal-overlay" id="settings-modal">
   <div class="modal-box">
     <h3>⚙️ Einstellungen</h3>
-    <label style="font-size: 11px;">VEREINSNAME</label>
+    <label>Vereinsname</label>
     <input type="text" id="set-name" class="form-input">
-    <label style="font-size: 11px;">FESTDATUM</label>
+    <label>Festdatum</label>
     <input type="date" id="set-date" class="form-input">
-    <label style="font-size: 11px;">NEUES PASSWORT (Optional)</label>
-    <input type="text" id="set-pass" class="form-input" placeholder="Leer lassen = kein Wechsel">
+    <label>Login-Passwort ändern</label>
+    <input type="text" id="set-pass" class="form-input">
     <div style="display:flex; gap:10px;">
-      <button class="btn-add" style="flex:1; background:#333;" onclick="closeSettings()">Abbrechen</button>
+      <button class="btn-add" style="flex:1; background:#333; border-color:#555;" onclick="closeSettings()">Abbrechen</button>
       <button class="btn-add" style="flex:1" onclick="saveSettings()">Speichern</button>
     </div>
   </div>
@@ -115,24 +119,24 @@
 <div class="modal-overlay" id="edit-modal">
   <div class="modal-box">
     <h3>✏️ Aufgabe bearbeiten</h3>
-    <label style="font-size: 11px;">TITEL</label>
+    <label>Titel der Aufgabe</label>
     <input type="text" id="edit-title" class="form-input">
-    <label style="font-size: 11px;">ZUSTÄNDIG</label>
-    <input type="text" id="edit-assignee" class="form-input" placeholder="Name">
+    <label>Zuständige Person</label>
+    <input type="text" id="edit-assignee" class="form-input">
     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px">
       <div>
-        <label style="font-size: 11px;">KATEGORIE</label>
+        <label>Kategorie</label>
         <select id="edit-cat" class="form-input"></select>
       </div>
       <div>
-        <label style="font-size: 11px;">WOCHEN DAVOR</label>
+        <label>Wochen davor</label>
         <input type="number" id="edit-weeks" class="form-input">
       </div>
     </div>
-    <label style="font-size: 11px;">NOTIZEN</label>
+    <label>Notizen</label>
     <textarea id="edit-notes" class="form-input" rows="3"></textarea>
     <div style="display:flex; gap:10px;">
-      <button class="btn-add" style="flex:1; background:#333;" onclick="closeEdit()">Abbrechen</button>
+      <button class="btn-add" style="flex:1; background:#333; border-color:#555;" onclick="closeEdit()">Abbrechen</button>
       <button class="btn-add" style="flex:1" onclick="saveEdit()">Speichern</button>
     </div>
   </div>
@@ -171,19 +175,26 @@
     filterPerson: "all"
   };
 
-  function checkLogin() {
-    if(document.getElementById("login-pass").value === state.config.pass) {
+  window.checkLogin = function() {
+    const input = document.getElementById("login-pass").value;
+    const msg = document.getElementById("login-msg");
+    const validPass = (state.config && state.config.pass) ? String(state.config.pass) : "1234";
+    
+    if(input === validPass) {
+      msg.textContent = "";
       document.getElementById("login-screen").style.display = "none";
     } else {
-      document.getElementById("login-msg").textContent = "Falsches Passwort!";
+      msg.textContent = "Passwort falsch eingegeben!";
+      document.getElementById("login-pass").value = "";
+      document.getElementById("login-pass").focus();
     }
-  }
+  };
 
   db.ref('festplaner').on('value', (snap) => {
     const data = snap.val();
     if(data) {
+      if(data.config) state.config = data.config;
       state.tasks = data.tasks || [];
-      state.config = data.config || state.config;
       render();
     }
   });
@@ -193,8 +204,8 @@
   }
 
   function render() {
-    document.getElementById("header-verein").textContent = "🎪 " + state.config.name;
-    const fDate = new Date(state.config.date);
+    document.getElementById("header-verein").textContent = "🎪 " + (state.config.name || "Fest-Planer");
+    const fDate = new Date(state.config.date || "2025-05-03");
     document.getElementById("fest-date-label").textContent = fDate.toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' });
 
     const persons = [...new Set(state.tasks.map(t => t.assignee).filter(n => n))].sort();
@@ -203,50 +214,41 @@
 
     const list = document.getElementById("task-list");
     const filtered = state.tasks.filter(t => (state.filterCat === "all" || t.cat === state.filterCat) && (state.filterPerson === "all" || t.assignee === state.filterPerson));
-
     filtered.sort((a,b) => a.done - b.done || b.weeksBefore - a.weeksBefore);
 
     const now = new Date();
     list.innerHTML = filtered.map(t => {
       const deadline = new Date(fDate.getTime() - t.weeksBefore * 7 * 86400000);
       const diffDays = Math.ceil((deadline - now) / (1000 * 60 * 60 * 24));
-      
       let statusClass = "";
       let dayText = diffDays < 0 ? `${Math.abs(diffDays)} Tage überfällig` : `Noch ${diffDays} Tage`;
       let dayColor = "#7070a0";
 
-      if (t.done) {
-        statusClass = "status-done";
-        dayText = "Erledigt";
-      } else if (diffDays < 0) {
-        statusClass = "status-overdue";
-        dayColor = "#ff4444";
-      } else if (diffDays <= 7) {
-        statusClass = "status-urgent";
-        dayColor = "#ffbb33";
-      }
+      if (t.done) { statusClass = "status-done"; dayText = "Erledigt"; }
+      else if (diffDays < 0) { statusClass = "status-overdue"; dayColor = "#ff4444"; }
+      else if (diffDays <= 7) { statusClass = "status-urgent"; dayColor = "#ffbb33"; }
 
       return `
         <div class="task-card ${statusClass}">
           <div class="task-main">
-            <input type="checkbox" ${t.done ? 'checked' : ''} onchange="toggleTask(${t.id})">
+            <input type="checkbox" ${t.done ? 'checked' : ''} onchange="toggleTask(${t.id})" style="width:22px; height:22px; cursor:pointer;">
             <div class="task-info">
               <span class="days-label" style="color:${dayColor}">${dayText}</span>
-              <div class="task-title ${t.done ? 'done-title' : ''}">${t.title}</div>
+              <div class="task-title" style="${t.done?'text-decoration:line-through;color:#606080':''}">${t.title}</div>
               <div class="task-sub">${CATEGORIES[t.cat].icon} • Fällig: ${deadline.toLocaleDateString('de-DE')}</div>
               ${t.assignee ? `<div class="assignee-badge">👤 ${t.assignee}</div>` : ''}
             </div>
-            <div style="display:flex; flex-direction:column; gap:10px;">
-                <button onclick="openEdit(${t.id})" style="background:none;border:none;cursor:pointer;font-size:18px;">✏️</button>
-                <button onclick="deleteTask(${t.id})" style="background:none;border:none;cursor:pointer;font-size:18px;">🗑️</button>
+            <div style="display:flex; flex-direction:column; gap:12px;">
+                <button onclick="openEdit(${t.id})" style="background:none;border:none;cursor:pointer;font-size:20px;">✏️</button>
+                <button onclick="deleteTask(${t.id})" style="background:none;border:none;cursor:pointer;font-size:20px;">🗑️</button>
             </div>
           </div>
         </div>`;
     }).join('');
 
-    const done = state.tasks.filter(t => t.done).length;
-    const pct = state.tasks.length ? Math.round(done/state.tasks.length*100) : 0;
-    document.getElementById("progress-text").textContent = `${done}/${state.tasks.length}`;
+    const doneCount = state.tasks.filter(t => t.done).length;
+    const pct = state.tasks.length ? Math.round(doneCount/state.tasks.length*100) : 0;
+    document.getElementById("progress-text").textContent = `${doneCount}/${state.tasks.length} Aufgaben`;
     document.getElementById("progress-bar").style.width = pct + "%";
     document.getElementById("progress-pct").textContent = pct + "%";
 
@@ -257,7 +259,7 @@
   window.setCatFilter = (c) => { state.filterCat = c; render(); };
   window.setPersonFilter = (p) => { state.filterPerson = p; render(); };
   window.toggleTask = (id) => { const t = state.tasks.find(x=>x.id===id); t.done = !t.done; sync(); };
-  window.deleteTask = (id) => { if(confirm("Löschen?")) { state.tasks = state.tasks.filter(x=>x.id!==id); sync(); } };
+  window.deleteTask = (id) => { if(confirm("Aufgabe wirklich löschen?")) { state.tasks = state.tasks.filter(x=>x.id!==id); sync(); } };
 
   let editId = null;
   window.openEdit = (id) => {
@@ -276,3 +278,30 @@
     t.title = document.getElementById("edit-title").value;
     t.assignee = document.getElementById("edit-assignee").value;
     t.weeksBefore = parseInt(document.getElementById("edit-weeks").value) || 0;
+    t.cat = document.getElementById("edit-cat").value;
+    t.notes = document.getElementById("edit-notes").value;
+    sync(); closeEdit();
+  };
+
+  window.addTask = () => {
+    const id = Date.now();
+    state.tasks.push({ id, title: "Neue Aufgabe", assignee: "", cat: "werbung", weeksBefore: 4, done: false, notes: "" });
+    sync(); openEdit(id);
+  };
+
+  window.openSettings = () => {
+    document.getElementById("set-name").value = state.config.name;
+    document.getElementById("set-date").value = state.config.date;
+    document.getElementById("set-pass").value = state.config.pass;
+    document.getElementById("settings-modal").style.display = "flex";
+  };
+  window.closeSettings = () => document.getElementById("settings-modal").style.display = "none";
+  window.saveSettings = () => {
+    state.config.name = document.getElementById("set-name").value;
+    state.config.date = document.getElementById("set-date").value;
+    state.config.pass = document.getElementById("set-pass").value;
+    sync(); closeSettings();
+  };
+</script>
+</body>
+</html>
