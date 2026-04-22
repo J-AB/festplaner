@@ -142,6 +142,7 @@
     zelt: { label: "Zelt", icon: "⛺" },
     behoerde: { label: "Amt", icon: "🏛️" },
     programm: { label: "Musik", icon: "🎵" },
+    werbung: { label: "Werbung", icon: "📢" },
     lieferant: { label: "Logistik", icon: "🍺" },
     finanzen: { label: "Geld", icon: "💰" }
   };
@@ -153,7 +154,6 @@
     filterPerson: "all"
   };
 
-  // --- Login System ---
   function checkLogin() {
     const input = document.getElementById("login-pass").value;
     if(input === state.config.pass) {
@@ -163,7 +163,6 @@
     }
   }
 
-  // --- Daten Sync ---
   db.ref('festplaner').on('value', (snap) => {
     const data = snap.val();
     if(data) {
@@ -177,20 +176,17 @@
     db.ref('festplaner').set({ tasks: state.tasks, config: state.config });
   }
 
-  // --- Rendering ---
   function render() {
     document.getElementById("header-verein").textContent = "🎪 " + state.config.name;
     const fDate = new Date(state.config.date);
     document.getElementById("fest-date-label").textContent = fDate.toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' });
 
-    // Personen-Filter Liste füllen
     const persons = [...new Set(state.tasks.map(t => t.assignee).filter(n => n))].sort();
     const pSel = document.getElementById("person-filter");
     const currentP = state.filterPerson;
     pSel.innerHTML = '<option value="all">👤 Alle Personen</option>' + 
       persons.map(p => `<option value="${p}" ${p===currentP?'selected':''}>${p}</option>`).join('');
 
-    // Task Liste
     const list = document.getElementById("task-list");
     const filtered = state.tasks.filter(t => {
       const catMatch = state.filterCat === "all" || t.cat === state.filterCat;
@@ -208,7 +204,7 @@
             <input type="checkbox" ${t.done ? 'checked' : ''} onchange="toggleTask(${t.id})">
             <div class="task-info">
               <div class="task-title ${t.done ? 'done-title' : ''}">${t.title}</div>
-              <div class="task-sub">${CATEGORIES[t.cat].icon} • ${d.toLocaleDateString('de-DE')}</div>
+              <div class="task-sub">${CATEGORIES[t.cat] ? CATEGORIES[t.cat].icon : '📝'} • ${d.toLocaleDateString('de-DE')}</div>
               ${t.assignee ? `<div class="assignee-badge">👤 ${t.assignee}</div>` : ''}
             </div>
             <button onclick="openEdit(${t.id})" style="background:none;border:none;cursor:pointer;">✏️</button>
@@ -217,25 +213,21 @@
         </div>`;
     }).join('');
 
-    // Fortschritt
     const done = state.tasks.filter(t => t.done).length;
     const pct = state.tasks.length ? Math.round(done/state.tasks.length*100) : 0;
     document.getElementById("progress-text").textContent = `${done} von ${state.tasks.length} erledigt`;
     document.getElementById("progress-bar").style.width = pct + "%";
     document.getElementById("progress-pct").textContent = pct + "%";
 
-    // Kategorien
     document.getElementById("cat-filters").innerHTML = `<button class="filter-btn ${state.filterCat==='all'?'active':''}" onclick="setCatFilter('all')">Alle</button>` + 
       Object.entries(CATEGORIES).map(([k,v]) => `<button class="filter-btn ${state.filterCat===k?'active':''}" onclick="setCatFilter('${k}')">${v.icon}</button>`).join('');
   }
 
-  // --- Actions ---
   window.setCatFilter = (c) => { state.filterCat = c; render(); };
   window.setPersonFilter = (p) => { state.filterPerson = p; render(); };
   window.toggleTask = (id) => { const t = state.tasks.find(x=>x.id===id); t.done = !t.done; sync(); };
   window.deleteTask = (id) => { if(confirm("Löschen?")) { state.tasks = state.tasks.filter(x=>x.id!==id); sync(); } };
 
-  // --- Edit Modal ---
   let editId = null;
   window.openEdit = (id) => {
     editId = id;
@@ -260,11 +252,10 @@
 
   window.addTask = () => {
     const id = Date.now();
-    state.tasks.push({ id, title: "Neue Aufgabe", assignee: "", cat: "zelt", weeksBefore: 4, done: false, notes: "" });
+    state.tasks.push({ id, title: "Neue Aufgabe", assignee: "", cat: "werbung", weeksBefore: 8, done: false, notes: "" });
     sync(); openEdit(id);
   };
 
-  // --- Settings Modal ---
   window.openSettings = () => {
     document.getElementById("set-name").value = state.config.name;
     document.getElementById("set-date").value = state.config.date;
@@ -279,7 +270,6 @@
     if(newPass) state.config.pass = newPass;
     sync(); closeSettings();
   };
-
 </script>
 </body>
 </html>
