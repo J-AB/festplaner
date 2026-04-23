@@ -1,4 +1,3 @@
-// --- CONFIG ---
 const firebaseConfig = {
     apiKey: "AIzaSyBgEL-pylLEkGJfv7g5NxMsupH-teoD7wA",
     authDomain: "musikfest-planer.firebaseapp.com",
@@ -19,10 +18,10 @@ const CATEGORIES = {
 };
 
 let state = { events: {}, users: {}, currentUser: null, currentEventId: 'home', catFilter: 'all', userFilter: 'all' };
-let hasAutoLoggedIn = false;
 let activeTaskId = null, activeTaskEventId = null;
+let hasAutoLoggedIn = false;
 
-// --- INITIAL LOAD & AUTO-LOGIN ---
+// Daten laden & Auto-Login
 db.ref('festplaner_v4').on('value', snap => {
     state.events = snap.val()?.events || {};
     state.users = snap.val()?.users || {};
@@ -40,18 +39,15 @@ db.ref('festplaner_v4').on('value', snap => {
     render();
 });
 
-// --- AUTH ---
 function handleLogin() {
     const u = document.getElementById("login-user").value.toLowerCase().trim();
     const p = document.getElementById("login-pass").value.trim();
     const adminUser = (u === 'admin' && p === '1234') ? {name:'admin', pass:'1234', isAdmin: true} : null;
     const user = adminUser || state.users[u];
-
     if(user && user.pass === p) {
         state.currentUser = user;
         localStorage.setItem('festplaner_user', u);
         localStorage.setItem('festplaner_pass', p);
-        
         document.getElementById("login-screen").style.display = "none";
         if(user.isAdmin) document.getElementById("admin-tools").style.display = "block";
         document.getElementById("user-info").innerHTML = `User: <b>${user.name}</b>`;
@@ -62,7 +58,6 @@ function handleLogin() {
     }
 }
 
-// --- LOGIK ---
 function getMyRole(evId) {
     if(state.currentUser?.isAdmin) return 'planer';
     return state.events[evId]?.roles?.[state.currentUser.name] || 'keine';
@@ -79,7 +74,6 @@ function render() {
     if(!state.currentUser) return;
     const sortedEvents = Object.entries(state.events).sort((a,b) => new Date(a[1].date||0) - new Date(b[1].date||0));
     
-    // Sidebar Update
     document.getElementById("event-list-ui").innerHTML = sortedEvents.map(([id, ev]) => {
         const role = getMyRole(id);
         const myTasks = (ev.tasks || []).filter(t => t.assignee === state.currentUser.name && !t.done);
@@ -95,7 +89,6 @@ function render() {
     const statsArea = document.getElementById("stats-ui");
 
     if(state.currentEventId === 'home') {
-        // Meine Übersicht
         document.getElementById("current-event-name").textContent = "Meine Aufgaben";
         filterArea.style.display = "none"; statsArea.style.display = "none";
         document.getElementById("admin-ev-edit").style.display = "none";
@@ -112,7 +105,6 @@ function render() {
         });
         taskList.innerHTML = html || "<p style='text-align:center; opacity:0.5; margin-top:40px;'>Alles erledigt! 😎</p>";
     } else {
-        // Fest Ansicht
         const ev = state.events[state.currentEventId];
         const role = getMyRole(state.currentEventId);
         document.getElementById("current-event-name").textContent = ev.name;
@@ -121,7 +113,6 @@ function render() {
         document.getElementById("add-btn").style.display = (role !== 'keine') ? "block" : "none";
         document.getElementById("stat-budget-card").style.display = (role === 'planer') ? "block" : "none";
 
-        // Filter bauen
         let catHtml = `<div class="icon-filter ${state.catFilter==='all'?'active':''}" onclick="state.catFilter='all';render()">🌍</div>`;
         Object.entries(CATEGORIES).forEach(([k, c]) => {
             if(k === 'finanzen' && role !== 'planer') return;
@@ -130,13 +121,12 @@ function render() {
         document.getElementById("cat-filters").innerHTML = catHtml;
 
         const allTasks = ev.tasks || [];
-        const activeUsers = [...new Set(allTasks.map(t => t.assignee).filter(Boolean))].sort();
+        const activeUsers = [...new Set(allTasks.map(t => t.assignee).filter(Boolean))];
         let userHtml = `<div class="user-filter ${state.userFilter==='all'?'active':''}" onclick="state.userFilter='all';render()">Alle</div>`;
         userHtml += `<div class="user-filter ${state.userFilter==='me'?'active':''}" onclick="state.userFilter='me';render()">Meine</div>`;
         activeUsers.forEach(u => { if(u !== state.currentUser.name) userHtml += `<div class="user-filter ${state.userFilter===u?'active':''}" onclick="state.userFilter='${u}';render()">${u}</div>`; });
         document.getElementById("user-filters").innerHTML = userHtml;
 
-        // Aufgaben filtern
         let tasks = allTasks.map(t => {
             if (t.preTask) { const pre = allTasks.find(p => p.id == t.preTask); t.isLocked = (pre && !pre.done); } else t.isLocked = false;
             return t;
@@ -157,7 +147,7 @@ function render() {
         document.getElementById("stat-progress").textContent = `${allTasks.filter(t => t.done).length} / ${allTasks.length}`;
         document.getElementById("stat-budget").textContent = `${allTasks.reduce((sum, t) => sum + (parseFloat(t.cost) || 0), 0).toFixed(0)} €`;
         const dL = ev.date ? Math.ceil((new Date(ev.date) - new Date()) / 86400000) : '-';
-        document.getElementById("stat-days").innerHTML = `${ev.date?(dL/7).toFixed(1):'-'} <small style="font-size:8px">Wo.</small>`;
+        document.getElementById("stat-days").innerHTML = `${ev.date?(dL/7).toFixed(1):'-'} <small style="font-size:8px">Wo.</small> / ${dL} <small style="font-size:8px">Tg.</small>`;
 
         taskList.innerHTML = tasks.length ? tasks.map(t => renderTaskCard(t, state.currentEventId, ev.date)).join('') : "Keine Aufgaben sichtbar.";
     }
@@ -262,7 +252,7 @@ function openEventEdit() {
 
 function selectEvent(id) { state.currentEventId = id; state.catFilter = 'all'; state.userFilter = 'all'; render(); if(window.innerWidth < 1024) toggleMenu(); }
 function toggleMenu() { document.getElementById("sidebar").classList.toggle("sidebar-hidden"); document.getElementById("overlay").style.display = document.getElementById("sidebar").classList.contains("sidebar-hidden") ? "none" : "block"; }
-function closeModals() { document.querySelectorAll('[id$="-modal"]').forEach(m => m.style.display = "none"); }
+function closeModals() { document.querySelectorAll('[id$="-modal"]').forEach(m => m.style.display = "none"); if(document.getElementById("edit-modal")) document.getElementById("edit-modal").style.display = "none"; }
 function addTask() {
     const tasks = state.events[state.currentEventId].tasks || [];
     const id = Date.now();
@@ -283,4 +273,4 @@ function createNewUser() {
     if(n && p && n !== 'admin') db.ref('festplaner_v4/users/'+n).set({name:n, pass:p});
     document.getElementById("new-u-name").value=""; document.getElementById("new-u-pass").value="";
 }
-function openEventModal() { const n = prompt("Name des Festes?"); if(n) db.ref('festplaner_v4/events/ev_'+Date.now()).set({name:n, tasks: [], roles: {}}); }
+function openEventModal() { const n = prompt("Name?"); if(n) db.ref('festplaner_v4/events/ev_'+Date.now()).set({name:n, tasks: [], roles: {}}); }
