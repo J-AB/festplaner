@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>🎪 Vereins-Manager v4 PRO+</title>
+<title>🎪 Vereins-Manager v5</title>
 <style>
   :root { --bg: #0d0d14; --panel: #16213e; --accent: #c8a45a; --text: #e8e8f0; --danger: #ff4444; --warning: #ffbb33; --safe: #00c851; }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -33,17 +33,12 @@
   .task-card { background: #0f0f20; border-radius: 14px; padding: 12px; border: 1px solid #252545; border-left: 5px solid #3a3a6a; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; transition: all 0.2s; }
   .status-done { opacity: 0.5; border-left-color: var(--safe) !important; filter: grayscale(0.5); }
   .status-locked { opacity: 0.4; filter: grayscale(1); }
-  .status-locked input[type="checkbox"] { pointer-events: none; opacity: 0.3; }
-  .status-locked .task-info { cursor: pointer; }
   .status-overdue { border-left-color: var(--danger) !important; background: rgba(255, 68, 68, 0.05); }
-  .status-urgent { border-left-color: var(--warning) !important; }
   
   .cat-box { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
   .task-info { flex: 1; min-width: 0; }
   .meta-row { display: flex; gap: 6px; margin-top: 6px; font-size: 10px; align-items: center; flex-wrap: wrap; }
   .cd-badge { font-weight: bold; padding: 2px 6px; border-radius: 4px; background: #2a2a4a; color: #a0a0c0; }
-  .cd-badge.urgent { color: var(--warning); }
-  .cd-badge.overdue { color: var(--danger); font-weight: 800; }
 
   .btn { padding: 10px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; font-size: 13px; }
   .btn-primary { background: var(--accent); color: #000; }
@@ -54,6 +49,11 @@
   #main-scroll { flex: 1; overflow-y: auto; padding: 15px; }
   #login-screen { position: fixed; inset: 0; background: var(--bg); z-index: 4000; display: flex; align-items: center; justify-content: center; }
   .modal-box { background: #12121f; border: 1px solid #3a3a6a; border-radius: 20px; padding: 20px; width: 100%; max-width: 450px; max-height: 90vh; overflow-y: auto; }
+
+  /* Spezifisches Styling für Rollen-Zuweisung */
+  .role-tag { display: inline-flex; align-items: center; background: #2a2a4a; color: white; padding: 4px 10px; border-radius: 15px; margin: 3px; font-size: 12px; }
+  .role-tag span { cursor: pointer; margin-left: 8px; color: var(--danger); font-weight: bold; }
+  .role-selector-box { background: #0a0a15; border: 1px solid #3a3a6a; border-radius: 10px; padding: 10px; margin-bottom: 15px; }
 
   @media (min-width: 1024px) { #sidebar { position: relative; transform: none; } #overlay { display: none !important; } }
 </style>
@@ -77,7 +77,7 @@
   </div>
   <div id="event-list-ui" style="flex:1; overflow-y:auto; padding:10px"></div>
   <div id="admin-tools" style="padding:15px; border-top:1px solid #2a2a4a; display:none">
-    <button class="btn btn-ghost" style="width:100%; margin-bottom:10px" onclick="openUserMgmt()">👥 Benutzer</button>
+    <button class="btn btn-ghost" style="width:100%; margin-bottom:10px" onclick="openUserMgmt()">👥 Benutzer-Pool</button>
     <button class="btn btn-ghost" style="width:100%" onclick="openEventModal()">+ Neues Fest</button>
   </div>
   <div style="padding:15px; background: #050510;">
@@ -123,12 +123,9 @@
     </div>
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
       <div><label style="font-size:11px">Wochen vorher</label><input type="number" id="ed-weeks" class="form-input"></div>
-      <div id="ed-cost-field"><label style="font-size:11px">Ist-Kosten €</label><input type="number" id="ed-cost" class="form-input"></div>
+      <div><label style="font-size:11px">Ist-Kosten €</label><input type="number" id="ed-cost" class="form-input"></div>
     </div>
-    <div>
-      <label style="font-size:11px">Wartet auf Erledigung von:</label>
-      <select id="ed-pretask" class="form-input"></select>
-    </div>
+    <div><label style="font-size:11px">Vorgänger:</label><select id="ed-pretask" class="form-input"></select></div>
     <textarea id="ed-notes" class="form-input" placeholder="Notizen..." style="height:80px"></textarea>
     <div style="display:flex; gap:10px">
       <button class="btn btn-danger" id="del-task-btn" onclick="deleteTask()">🗑️</button>
@@ -143,9 +140,22 @@
     <h3>Fest-Einstellungen</h3>
     <input type="text" id="ev-edit-name" class="form-input">
     <input type="date" id="ev-edit-date" class="form-input">
-    <h4 style="margin: 10px 0; color: var(--accent); font-size: 14px;">👥 Rollen</h4>
-    <div id="event-roles-list" style="margin-bottom: 15px; max-height: 200px; overflow-y: auto;"></div>
-    <div style="display:flex; gap:10px">
+    
+    <label style="font-size:11px; color:var(--accent)">HELFER VIP (sehen alle Aufgaben)</label>
+    <div class="role-selector-box" id="vip-tags"></div>
+    <select class="form-input" onchange="addRoleToEvent(this.value, 'helferVIP')">
+        <option value="">+ Namen aus Pool wählen...</option>
+        <optgroup id="vip-pool-list" label="Verfügbare User"></optgroup>
+    </select>
+
+    <label style="font-size:11px; color:var(--accent)">HELFER (sehen nur zugewiesene)</label>
+    <div class="role-selector-box" id="helfer-tags"></div>
+    <select class="form-input" onchange="addRoleToEvent(this.value, 'helfer')">
+        <option value="">+ Namen aus Pool wählen...</option>
+        <optgroup id="helfer-pool-list" label="Verfügbare User"></optgroup>
+    </select>
+
+    <div style="display:flex; gap:10px; margin-top:20px">
       <button class="btn btn-danger" onclick="deleteEvent()">🗑️</button>
       <button class="btn btn-ghost" style="flex:1" onclick="closeModals()">Abbr.</button>
       <button class="btn btn-primary" style="flex:1" onclick="saveEventEdit()">Speichern</button>
@@ -155,12 +165,12 @@
 
 <div id="user-mgmt-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:3500; align-items:center; justify-content:center; padding:20px">
   <div class="modal-box">
-    <h3>👥 Benutzerverwaltung</h3>
+    <h3>👥 Benutzer-Pool (Global)</h3>
     <div id="user-list-admin" style="margin-bottom:15px; max-height: 200px; overflow-y: auto;"></div>
     <input type="text" id="new-u-name" class="form-input" placeholder="Name">
     <input type="text" id="new-u-pass" class="form-input" placeholder="Passwort">
-    <button class="btn btn-primary" style="width:100%" onclick="createNewUser()">Anlegen</button>
-    <button class="btn btn-ghost" style="width:100%; margin-top:10px" onclick="closeModals()">X</button>
+    <button class="btn btn-primary" style="width:100%" onclick="createNewUser()">Neu anlegen</button>
+    <button class="btn btn-ghost" style="width:100%; margin-top:10px" onclick="closeModals()">Schließen</button>
   </div>
 </div>
 
@@ -215,13 +225,6 @@
     return state.events[evId]?.roles?.[state.currentUser.name] || 'keine';
   }
 
-  function getDaysUntilDeadline(evDate, t) {
-    if (!evDate || !t.weeks) return 999;
-    const deadline = new Date(new Date(evDate).getTime() - (t.weeks * 7 * 86400000));
-    const diffTime = deadline - new Date();
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  }
-
   function render() {
     if(!state.currentUser) return;
     const sortedEvents = Object.entries(state.events).sort((a,b) => new Date(a[1].date||0) - new Date(b[1].date||0));
@@ -252,7 +255,7 @@
             if(role !== 'planer') my = my.filter(t => t.category !== 'finanzen');
             if(my.length > 0) {
                 html += `<div style="color:var(--accent); margin:15px 0 5px; font-size:11px; border-bottom:1px solid #222; padding-bottom:3px;">${ev.name}</div>`;
-                my.sort((a,b) => getDaysUntilDeadline(ev.date, a) - getDaysUntilDeadline(ev.date, b)).forEach(t => html += renderTaskCard(t, evId, ev.date));
+                my.forEach(t => html += renderTaskCard(t, evId, ev.date));
             }
         });
         taskList.innerHTML = html || "<p style='text-align:center; opacity:0.5; margin-top:40px;'>Alles erledigt! 😎</p>";
@@ -265,107 +268,39 @@
         document.getElementById("add-btn").style.display = (role !== 'keine') ? "block" : "none";
         document.getElementById("stat-budget-card").style.display = (role === 'planer') ? "block" : "none";
 
-        let catHtml = `<div class="icon-filter ${state.catFilter==='all'?'active':''}" onclick="state.catFilter='all';render()">🌍</div>`;
-        Object.entries(CATEGORIES).forEach(([k, c]) => {
-            if(k === 'finanzen' && role !== 'planer') return;
-            catHtml += `<div class="icon-filter ${state.catFilter===k?'active':''}" onclick="state.catFilter='${k}';render()">${c.icon}</div>`;
-        });
-        document.getElementById("cat-filters").innerHTML = catHtml;
-
-        const allTasks = ev.tasks || [];
-        const activeUsers = [...new Set(allTasks.map(t => t.assignee).filter(Boolean))];
-        let userHtml = `<div class="user-filter ${state.userFilter==='all'?'active':''}" onclick="state.userFilter='all';render()">Alle</div>`;
-        userHtml += `<div class="user-filter ${state.userFilter==='me'?'active':''}" onclick="state.userFilter='me';render()">Meine</div>`;
-        activeUsers.forEach(u => { if(u !== state.currentUser.name) userHtml += `<div class="user-filter ${state.userFilter===u?'active':''}" onclick="state.userFilter='${u}';render()">${u}</div>`; });
-        document.getElementById("user-filters").innerHTML = userHtml;
-
-        let tasks = allTasks.map(t => {
-            if (t.preTask) { const pre = allTasks.find(p => p.id == t.preTask); t.isLocked = (pre && !pre.done); } else t.isLocked = false;
+        let tasks = (ev.tasks || []).map(t => {
+            if (t.preTask) { const pre = ev.tasks.find(p => p.id == t.preTask); t.isLocked = (pre && !pre.done); } else t.isLocked = false;
             return t;
         });
 
-        // Sichtbarkeits-Logik für Helfer vs HelferVIP
         if(role !== 'planer') {
             tasks = tasks.filter(t => t.category !== 'finanzen');
-            if(role === 'helfer') {
-                // Einfacher Helfer sieht NUR seine Aufgaben
-                tasks = tasks.filter(t => t.assignee === state.currentUser.name);
-            }
-            // HelferVIP sieht alle (oben bereits gefiltert durch category !== finanzen)
-            if (role !== 'planer') tasks = tasks.filter(t => !t.isLocked || t.assignee === state.currentUser.name);
+            if(role === 'helfer') tasks = tasks.filter(t => t.assignee === state.currentUser.name);
+            tasks = tasks.filter(t => !t.isLocked || t.assignee === state.currentUser.name);
         }
-
-        if(state.catFilter !== 'all') tasks = tasks.filter(t => t.category === state.catFilter);
-        if(state.userFilter === 'me') tasks = tasks.filter(t => t.assignee === state.currentUser.name);
-        else if(state.userFilter !== 'all') tasks = tasks.filter(t => t.assignee === state.userFilter);
-
-        tasks.sort((a, b) => { if (a.done !== b.done) return a.done - b.done; return getDaysUntilDeadline(ev.date, a) - getDaysUntilDeadline(ev.date, b); });
+        taskList.innerHTML = tasks.length ? tasks.map(t => renderTaskCard(t, state.currentEventId, ev.date)).join('') : "Keine Aufgaben.";
         
-        document.getElementById("stat-progress").textContent = `${allTasks.filter(t => t.done).length} / ${allTasks.length}`;
-        document.getElementById("stat-budget").textContent = `${allTasks.reduce((sum, t) => sum + (parseFloat(t.cost) || 0), 0).toFixed(0)} €`;
-        const dL = ev.date ? Math.ceil((new Date(ev.date) - new Date()) / 86400000) : '-';
-        document.getElementById("stat-days").innerHTML = `${ev.date?(dL/7).toFixed(1):'-'} <small style="font-size:8px">Wo.</small> / ${dL} <small style="font-size:8px">Tg.</small>`;
-
-        taskList.innerHTML = tasks.length ? tasks.map(t => renderTaskCard(t, state.currentEventId, ev.date)).join('') : "Keine Aufgaben sichtbar.";
+        document.getElementById("stat-progress").textContent = `${ev.tasks?.filter(t=>t.done).length || 0} / ${ev.tasks?.length || 0}`;
+        document.getElementById("stat-budget").textContent = `${(ev.tasks || []).reduce((sum, t) => sum + (parseFloat(t.cost) || 0), 0).toFixed(0)} €`;
     }
   }
 
   function renderTaskCard(t, evId, evDate) {
     const role = getMyRole(evId);
-    const isLocked = t.isLocked;
-    const canEdit = (role === 'planer') || (t.assignee === state.currentUser.name) || (!t.assignee && role !== 'keine');
     const cat = CATEGORIES[t.category] || CATEGORIES.sonstiges;
-    const diff = getDaysUntilDeadline(evDate, t);
-    let sCls = "", cdL = "Offen", cdC = "";
-    if (isLocked) sCls = "status-locked";
-    else if (t.done) { sCls = "status-done"; cdL = "✓"; }
-    else if (evDate && t.weeks) {
-        if (diff < 0) { sCls = "status-overdue"; cdL = "Fällig!"; cdC = "overdue"; }
-        else if (diff <= 7) { sCls = "status-urgent"; cdL = diff + " Tg."; cdC = "urgent"; }
-        else cdL = diff + " Tg.";
-    }
-    const stamp = t.lastChanged ? `<span style="color:${t.done?'var(--safe)':'#505070'}; font-size:9px; margin-left:auto; opacity:0.7;">✍️ ${t.lastChanged}</span>` : '';
+    const canEdit = (role === 'planer') || (t.assignee === state.currentUser.name);
     return `
-      <div class="task-card ${sCls}">
-        <input type="checkbox" ${t.done?'checked':''} ${isLocked?'disabled':''} onchange="toggleTask('${evId}', ${t.id})" style="width:22px; height:22px">
-        <div class="cat-box" style="background:${cat.color}22; color:${cat.color}">${isLocked?'🔒':cat.icon}</div>
-        <div class="task-info" onclick="${(canEdit && (role==='planer'||!isLocked))?`openEdit('${evId}', ${t.id})`:''}">
+      <div class="task-card ${t.done?'status-done':''} ${t.isLocked?'status-locked':''}">
+        <input type="checkbox" ${t.done?'checked':''} onchange="toggleTask('${evId}', ${t.id})" style="width:22px; height:22px">
+        <div class="cat-box" style="background:${cat.color}22; color:${cat.color}">${t.isLocked?'🔒':cat.icon}</div>
+        <div class="task-info" onclick="${canEdit?`openEdit('${evId}', ${t.id})`:''}">
           <div style="font-weight:bold; font-size:14px; display:flex; justify-content:space-between;">
             <span>${t.title}</span>
-            ${(t.cost && role === 'planer') ? `<span style="color:var(--safe); font-size:11px;">${t.cost}€</span>` : ''}
+            ${(t.cost && role==='planer')?`<span style="color:var(--safe); font-size:11px;">${t.cost}€</span>`:''}
           </div>
-          ${t.notes ? `<div style="font-size:11px; color:#a0a0b0; margin:4px 0; font-style:italic; border-left:2px solid #3a3a6a; padding-left:8px;">${t.notes}</div>` : ''}
-          <div class="meta-row">
-            ${isLocked ? `<span style="color:var(--danger); font-size:9px;">🔒 Wartet auf Vorgänger</span>` : `<span class="cd-badge ${cdC}">${cdL}</span>`}
-            <span style="color:#707090">${t.assignee || 'Offen'}</span>
-            ${stamp}
-          </div>
+          <div class="meta-row"><span style="color:#707090">${t.assignee || 'Offen'}</span></div>
         </div>
       </div>`;
-  }
-
-  function toggleTask(evId, id) {
-    const tasks = [...state.events[evId].tasks];
-    const idx = tasks.findIndex(x => x.id === id);
-    tasks[idx].done = !tasks[idx].done;
-    const now = new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
-    tasks[idx].lastChanged = `${tasks[idx].done?now:'Offen'} - ${state.currentUser.name}`;
-    db.ref(`festplaner_v4/events/${evId}/tasks`).set(tasks);
-  }
-
-  function saveEdit() {
-    const tasks = [...state.events[activeTaskEventId].tasks];
-    const idx = tasks.findIndex(x => x.id === activeTaskId);
-    tasks[idx].title = document.getElementById("ed-title").value;
-    tasks[idx].category = document.getElementById("ed-cat").value;
-    tasks[idx].weeks = parseInt(document.getElementById("ed-weeks").value) || 0;
-    if(document.getElementById("ed-cost-field").style.display !== 'none') tasks[idx].cost = parseFloat(document.getElementById("ed-cost").value) || 0;
-    tasks[idx].notes = document.getElementById("ed-notes").value;
-    tasks[idx].assignee = document.getElementById("ed-assignee").value;
-    tasks[idx].preTask = document.getElementById("ed-pretask").value;
-    tasks[idx].lastChanged = `${new Date().toLocaleDateString('de-DE')} - ${state.currentUser.name}`;
-    db.ref(`festplaner_v4/events/${activeTaskEventId}/tasks`).set(tasks);
-    closeModals();
   }
 
   function openEdit(evId, taskId) {
@@ -373,17 +308,20 @@
     const ev = state.events[evId];
     const t = ev.tasks.find(x => x.id === taskId);
     const role = getMyRole(evId);
+    
     document.getElementById("ed-title").value = t.title;
     document.getElementById("ed-weeks").value = t.weeks || 0;
     document.getElementById("ed-cost").value = t.cost || 0;
     document.getElementById("ed-notes").value = t.notes || "";
-    document.getElementById("ed-cost-field").style.display = (role === 'planer') ? "block" : "none";
-    document.getElementById("ed-cat").innerHTML = Object.entries(CATEGORIES).filter(([k]) => role === 'planer' || k !== 'finanzen').map(([k,c]) => `<option value="${k}" ${t.category===k?'selected':''}>${c.icon} ${c.label}</option>`).join('');
+    
+    // Helfer dürfen Kosten eintragen, aber keine Kategorien auf "Finanzen" ändern
+    document.getElementById("ed-cat").innerHTML = Object.entries(CATEGORIES)
+        .filter(([k]) => role === 'planer' || k !== 'finanzen')
+        .map(([k,c]) => `<option value="${k}" ${t.category===k?'selected':''}>${c.icon} ${c.label}</option>`).join('');
+    
     const uList = Object.keys(ev.roles || {}).filter(n => ev.roles[n] !== 'keine');
     document.getElementById("ed-assignee").innerHTML = '<option value="">Offen</option>' + uList.map(u => `<option value="${u}" ${t.assignee===u?'selected':''}>${u}</option>`).join('');
-    let preHtml = '<option value="">Sofort verfügbar</option>';
-    ev.tasks.filter(x => x.id !== taskId).forEach(ot => { preHtml += `<option value="${ot.id}" ${t.preTask == ot.id ? 'selected':''}>${ot.title}</option>`; });
-    document.getElementById("ed-pretask").innerHTML = preHtml;
+    
     document.getElementById("edit-modal").style.display = "flex";
   }
 
@@ -391,46 +329,75 @@
     const ev = state.events[state.currentEventId];
     document.getElementById("ev-edit-name").value = ev.name;
     document.getElementById("ev-edit-date").value = ev.date || "";
-    let h = "";
-    Object.values(state.users).forEach(u => {
-        const r = ev.roles?.[u.name] || 'keine';
-        h += `<div style="display:flex; justify-content:space-between; margin-bottom:5px; background:#1a1a30; padding:8px; border-radius:5px; font-size:12px;">
-            <span>${u.name}</span>
-            <select onchange="db.ref('festplaner_v4/events/${state.currentEventId}/roles/${u.name}').set(this.value)" style="background:#000; color:#fff;">
-                <option value="keine" ${r==='keine'?'selected':''}>Aus</option>
-                <option value="planer" ${r==='planer'?'selected':''}>Planer</option>
-                <option value="helferVIP" ${r==='helferVIP'?'selected':''}>Helfer VIP</option>
-                <option value="helfer" ${r==='helfer'?'selected':''}>Helfer</option>
-            </select></div>`;
-    });
-    document.getElementById("event-roles-list").innerHTML = h;
+    
+    const renderTags = (roleType, elementId) => {
+        const assigned = Object.entries(ev.roles || {}).filter(([name, role]) => role === roleType);
+        document.getElementById(elementId).innerHTML = assigned.map(([name]) => 
+            `<div class="role-tag">${name}<span onclick="removeRoleFromEvent('${name}')">✕</span></div>`
+        ).join('') || '<span style="color:#555; font-size:11px;">Niemand zugewiesen</span>';
+    };
+
+    renderTags('helferVIP', 'vip-tags');
+    renderTags('helfer', 'helfer-tags');
+
+    const pool = Object.values(state.users).filter(u => !ev.roles || ev.roles[u.name] === 'keine');
+    const options = pool.map(u => `<option value="${u.name}">${u.name}</option>`).join('');
+    document.getElementById("vip-pool-list").innerHTML = options;
+    document.getElementById("helfer-pool-list").innerHTML = options;
+
     document.getElementById("event-edit-modal").style.display = "flex";
   }
 
-  function selectEvent(id) { state.currentEventId = id; state.catFilter = 'all'; state.userFilter = 'all'; render(); if(window.innerWidth < 1024) toggleMenu(); }
+  function addRoleToEvent(userName, roleType) {
+    if(!userName) return;
+    db.ref(`festplaner_v4/events/${state.currentEventId}/roles/${userName}`).set(roleType);
+  }
+
+  function removeRoleFromEvent(userName) {
+    db.ref(`festplaner_v4/events/${state.currentEventId}/roles/${userName}`).remove();
+  }
+
+  function saveEdit() {
+    const tasks = [...state.events[activeTaskEventId].tasks];
+    const idx = tasks.findIndex(x => x.id === activeTaskId);
+    tasks[idx].title = document.getElementById("ed-title").value;
+    tasks[idx].cost = parseFloat(document.getElementById("ed-cost").value) || 0;
+    tasks[idx].notes = document.getElementById("ed-notes").value;
+    tasks[idx].category = document.getElementById("ed-cat").value;
+    tasks[idx].assignee = document.getElementById("ed-assignee").value;
+    db.ref(`festplaner_v4/events/${activeTaskEventId}/tasks`).set(tasks);
+    closeModals();
+  }
+
+  function toggleTask(evId, id) {
+    const tasks = [...state.events[evId].tasks];
+    const idx = tasks.findIndex(x => x.id === id);
+    tasks[idx].done = !tasks[idx].done;
+    db.ref(`festplaner_v4/events/${evId}/tasks`).set(tasks);
+  }
+
+  function selectEvent(id) { state.currentEventId = id; render(); if(window.innerWidth < 1024) toggleMenu(); }
   function toggleMenu() { document.getElementById("sidebar").classList.toggle("sidebar-hidden"); document.getElementById("overlay").style.display = document.getElementById("sidebar").classList.contains("sidebar-hidden") ? "none" : "block"; }
   function closeModals() { document.querySelectorAll('[id$="-modal"]').forEach(m => m.style.display = "none"); }
-  function addTask() {
-    const tasks = state.events[state.currentEventId].tasks || [];
-    const id = Date.now();
-    tasks.push({ id, title: "Neue Aufgabe", category: state.catFilter==='all'?'sonstiges':state.catFilter, done: false, assignee: (getMyRole(state.currentEventId)==='planer'?'':state.currentUser.name) });
-    db.ref(`festplaner_v4/events/${state.currentEventId}/tasks`).set(tasks);
-    openEdit(state.currentEventId, id);
-  }
-  function saveEventEdit() { db.ref(`festplaner_v4/events/${state.currentEventId}`).update({name: document.getElementById("ev-edit-name").value, date: document.getElementById("ev-edit-date").value}); closeModals(); }
-  function deleteEvent() { if(confirm("Löschen?")) { db.ref(`festplaner_v4/events/${state.currentEventId}`).remove(); selectEvent('home'); closeModals(); } }
-  function deleteTask() { if(confirm("Löschen?")) { const tasks = state.events[activeTaskEventId].tasks.filter(x => x.id !== activeTaskId); db.ref(`festplaner_v4/events/${activeTaskEventId}/tasks`).set(tasks); closeModals(); } }
-  function openUserMgmt() {
-    document.getElementById("user-list-admin").innerHTML = Object.values(state.users).map(u => `<div style="display:flex; justify-content:space-between; padding:5px; border-bottom:1px solid #222; font-size:12px;"><span>${u.name}</span><button onclick="db.ref('festplaner_v4/users/${u.name}').remove()" style="color:red; background:none; border:none">✖</button></div>`).join('');
-    document.getElementById("user-mgmt-modal").style.display = "flex";
-  }
   function createNewUser() {
     const n = document.getElementById("new-u-name").value.toLowerCase().trim();
     const p = document.getElementById("new-u-pass").value.trim();
     if(n && p && n !== 'admin') db.ref('festplaner_v4/users/'+n).set({name:n, pass:p});
     document.getElementById("new-u-name").value=""; document.getElementById("new-u-pass").value="";
   }
-  function openEventModal() { const n = prompt("Name?"); if(n) db.ref('festplaner_v4/events/ev_'+Date.now()).set({name:n, tasks: [], roles: {}}); }
+  function openUserMgmt() {
+    document.getElementById("user-list-admin").innerHTML = Object.values(state.users).map(u => `<div style="display:flex; justify-content:space-between; padding:8px; border-bottom:1px solid #222;"><span>${u.name}</span><button onclick="db.ref('festplaner_v4/users/${u.name}').remove()" style="color:red; background:none; border:none">✖</button></div>`).join('');
+    document.getElementById("user-mgmt-modal").style.display = "flex";
+  }
+  function openEventModal() { const n = prompt("Name des Festes?"); if(n) db.ref('festplaner_v4/events/ev_'+Date.now()).set({name:n, tasks: [], roles: {}}); }
+  function saveEventEdit() { db.ref(`festplaner_v4/events/${state.currentEventId}`).update({name: document.getElementById("ev-edit-name").value, date: document.getElementById("ev-edit-date").value}); closeModals(); }
+  function addTask() {
+    const tasks = state.events[state.currentEventId].tasks || [];
+    const id = Date.now();
+    tasks.push({ id, title: "Neue Aufgabe", category: 'sonstiges', done: false, assignee: '' });
+    db.ref(`festplaner_v4/events/${state.currentEventId}/tasks`).set(tasks);
+    openEdit(state.currentEventId, id);
+  }
 </script>
 </body>
 </html>
