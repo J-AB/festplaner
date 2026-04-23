@@ -175,7 +175,11 @@ function renderTaskCard(t, evId, evDate) {
         <div class="task-info" onclick="${(canEdit && (role==='planer'||!isLocked))?`openEdit('${evId}', ${t.id})`:''}">
           <div style="font-weight:bold; font-size:14px; display:flex; justify-content:space-between;">
             <span>${t.title}</span>
-            ${(t.cost && role === 'planer') ? `<span style="color:var(--safe); font-size:11px;">${t.cost}€</span>` : ''}
+            // Kosten-Logik: Planer sehen alles, Helfer nur ihre eigenen Kosten bei ihren Aufgaben
+            const showCostInCard = (role === 'planer') || (t.cost && t.assignee === state.currentUser.name);
+
+            // ... im HTML-String der renderTaskCard Funktion:
+            ${(showCostInCard && t.cost) ? `<span style="color:var(--safe); font-size:11px;">${t.cost}€</span>` : ''}
           </div>
           ${t.notes ? `<div style="font-size:11px; color:#a0a0b0; margin:4px 0; font-style:italic; border-left:2px solid #3a3a6a; padding-left:8px;">${t.notes}</div>` : ''}
           <div class="meta-row">
@@ -220,7 +224,9 @@ function openEdit(evId, taskId) {
     document.getElementById("ed-weeks").value = t.weeks || 0;
     document.getElementById("ed-cost").value = t.cost || 0;
     document.getElementById("ed-notes").value = t.notes || "";
-    document.getElementById("ed-cost-field").style.display = (role === 'planer') ? "block" : "none";
+   // Das Kostenfeld ist sichtbar für Planer ODER wenn der eingeloggte User der Aufgabe zugewiesen ist
+    const canSeeCostField = (role === 'planer') || (t.assignee === state.currentUser.name);
+    document.getElementById("ed-cost-field").style.display = canSeeCostField ? "block" : "none";
     document.getElementById("ed-cat").innerHTML = Object.entries(CATEGORIES).filter(([k]) => role === 'planer' || k !== 'finanzen').map(([k,c]) => `<option value="${k}" ${t.category===k?'selected':''}>${c.icon} ${c.label}</option>`).join('');
     const uList = Object.keys(ev.roles || {}).filter(n => ev.roles[n] !== 'keine');
     document.getElementById("ed-assignee").innerHTML = '<option value="">Offen</option>' + uList.map(u => `<option value="${u}" ${t.assignee===u?'selected':''}>${u}</option>`).join('');
