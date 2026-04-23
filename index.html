@@ -30,11 +30,9 @@
   .user-filter { padding: 6px 14px; border-radius: 20px; background: #1a1a30; border: 1px solid #3a3a6a; font-size: 11px; color: #fff; cursor: pointer; white-space: nowrap; }
   .user-filter.active { background: var(--accent); color: #000; border-color: var(--accent); }
 
-  /* Task Cards */
   .task-card { background: #0f0f20; border-radius: 14px; padding: 12px; border: 1px solid #252545; border-left: 5px solid #3a3a6a; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; transition: all 0.2s; }
   .status-done { opacity: 0.5; border-left-color: var(--safe) !important; filter: grayscale(0.5); }
   
-  /* NEU: Sperr-Logik für Planer klickbar */
   .status-locked { opacity: 0.4; filter: grayscale(1); }
   .status-locked input[type="checkbox"] { pointer-events: none; opacity: 0.3; }
   .status-locked .task-info { cursor: pointer; }
@@ -101,7 +99,7 @@
     </div>
     <div class="stats-grid" id="stats-ui" style="display:none">
       <div class="stat-card"><span class="stat-lbl">Aufgaben</span><span class="stat-val" id="stat-progress">-</span></div>
-      <div class="stat-card"><span class="stat-lbl">Kosten</span><span class="stat-val" id="stat-budget">0 €</span></div>
+      <div class="stat-card" id="stat-budget-card"><span class="stat-lbl">Kosten</span><span class="stat-val" id="stat-budget">0 €</span></div>
       <div class="stat-card"><span class="stat-lbl">Zeit bis</span><span class="stat-val" id="stat-days">-</span></div>
     </div>
   </header>
@@ -127,7 +125,7 @@
     </div>
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
       <div><label style="font-size:11px">Wochen vorher</label><input type="number" id="ed-weeks" class="form-input"></div>
-      <div><label style="font-size:11px">Ist-Kosten €</label><input type="number" id="ed-cost" class="form-input"></div>
+      <div id="ed-cost-field"><label style="font-size:11px">Ist-Kosten €</label><input type="number" id="ed-cost" class="form-input"></div>
     </div>
     <div>
       <label style="font-size:11px">Wartet auf Erledigung von:</label>
@@ -252,7 +250,11 @@
         document.getElementById("add-btn").style.display = "none";
         let html = "";
         sortedEvents.forEach(([evId, ev]) => {
-            const my = (ev.tasks || []).filter(t => t.assignee === state.currentUser.name && !t.done);
+            const role = getMyRole(evId);
+            let my = (ev.tasks || []).filter(t => t.assignee === state.currentUser.name && !t.done);
+            // Finanzen für Helfer ausblenden
+            if(role !== 'planer') my = my.filter(t => t.category !== 'finanzen');
+            
             if(my.length > 0) {
                 html += `<div style="color:var(--accent); margin:15px 0 5px; font-size:11px; border-bottom:1px solid #222; padding-bottom:3px;">${ev.name}</div>`;
                 my.sort((a,b) => getDaysUntilDeadline(ev.date, a) - getDaysUntilDeadline(ev.date, b))
@@ -268,9 +270,14 @@
         statsArea.style.display = "grid";
         document.getElementById("admin-ev-edit").style.display = (role === 'planer') ? "block" : "none";
         document.getElementById("add-btn").style.display = (role !== 'keine') ? "block" : "none";
+        
+        // FINANZEN-PROTECTION: Budget-Statistik verstecken
+        document.getElementById("stat-budget-card").style.display = (role === 'planer') ? "block" : "none";
 
         let catHtml = `<div class="icon-filter ${state.catFilter==='all'?'active':''}" onclick="state.catFilter='all';render()">🌍</div>`;
         Object.entries(CATEGORIES).forEach(([k, c]) => {
+            // FINANZEN-PROTECTION: Filter-Icon nur für Planer
+            if(k === 'finanzen' && role !== 'planer') return;
             catHtml += `<div class="icon-filter ${state.catFilter===k?'active':''}" onclick="state.catFilter='${k}';render()">${c.icon}</div>`;
         });
         document.getElementById("cat-filters").innerHTML = catHtml;
@@ -299,11 +306,13 @@
             return t;
         });
 
+        // FINANZEN-PROTECTION: Finanzen-Tasks für Helfer filtern
+        if(role !== 'planer') tasks = tasks.filter(t => t.category !== 'finanzen');
+
         if(state.catFilter !== 'all') tasks = tasks.filter(t => t.category === state.catFilter);
         if(state.userFilter === 'me') tasks = tasks.filter(t => t.assignee === state.currentUser.name);
         else if(state.userFilter !== 'all') tasks = tasks.filter(t => t.assignee === state.userFilter);
         
-        // Helfer sehen gesperrte Aufgaben gar nicht
         if (role !== 'planer') tasks = tasks.filter(t => !t.isLocked);
 
         tasks.sort((a, b) => {
@@ -336,6 +345,9 @@
     const lockInfo = isLocked ? `<span style="color:var(--danger); font-size:9px;">🔒 Wartet auf Vorgänger</span>` : '';
     const stampHtml = t.lastChanged ? `<span style="color:${stampColor}; font-size:9px; margin-left:auto; opacity:0.7;">✍️ ${t.lastChanged}</span>` : '';
 
+    // FINANZEN-PROTECTION: Kostenbadge nur für Planer zeigen
+    const costBadge = (t.cost && role === 'planer') ? `<span style="color:var(--safe); font-size:11px;">${t.cost}€</span>` : '';
+
     return `
       <div class="task-card ${statusClass}">
         <input type="checkbox" ${t.done?'checked':''} ${isLocked?'disabled':''} onchange="toggleTask('${evId}', ${t.id})" style="width:22px; height:22px">
@@ -343,7 +355,7 @@
         <div class="task-info" onclick="${(canEdit && (role === 'planer' || !isLocked)) ? `openEdit('${evId}', ${t.id})` : ''}">
           <div style="font-weight:bold; font-size:14px; display:flex; justify-content:space-between; align-items:center;">
             <span>${t.title}</span>
-            ${t.cost ? `<span style="color:var(--safe); font-size:11px;">${t.cost}€</span>` : ''}
+            ${costBadge}
           </div>
           ${noteHtml}
           <div class="meta-row">
@@ -378,7 +390,12 @@
     tasks[idx].title = document.getElementById("ed-title").value;
     tasks[idx].category = document.getElementById("ed-cat").value;
     tasks[idx].weeks = parseInt(document.getElementById("ed-weeks").value) || 0;
-    tasks[idx].cost = parseFloat(document.getElementById("ed-cost").value) || 0;
+    
+    // FINANZEN-PROTECTION: Kosten nur speichern wenn Feld sichtbar (Planer)
+    if(document.getElementById("ed-cost-field").style.display !== 'none') {
+        tasks[idx].cost = parseFloat(document.getElementById("ed-cost").value) || 0;
+    }
+    
     tasks[idx].notes = document.getElementById("ed-notes").value;
     tasks[idx].assignee = document.getElementById("ed-assignee").value;
     tasks[idx].preTask = document.getElementById("ed-pretask").value;
@@ -392,11 +409,19 @@
     activeTaskEventId = evId; activeTaskId = taskId;
     const ev = state.events[evId];
     const t = ev.tasks.find(x => x.id === taskId);
+    const role = getMyRole(evId);
+    
     document.getElementById("ed-title").value = t.title;
     document.getElementById("ed-weeks").value = t.weeks || 0;
     document.getElementById("ed-cost").value = t.cost || 0;
     document.getElementById("ed-notes").value = t.notes || "";
-    document.getElementById("ed-cat").innerHTML = Object.entries(CATEGORIES).map(([k,c]) => `<option value="${k}" ${t.category===k?'selected':''}>${c.icon} ${c.label}</option>`).join('');
+    
+    // FINANZEN-PROTECTION: Modal-Kostenfeld nur für Planer
+    document.getElementById("ed-cost-field").style.display = (role === 'planer') ? "block" : "none";
+    
+    document.getElementById("ed-cat").innerHTML = Object.entries(CATEGORIES)
+        .filter(([k,c]) => role === 'planer' || k !== 'finanzen') // Kategorie-Auswahl einschränken
+        .map(([k,c]) => `<option value="${k}" ${t.category===k?'selected':''}>${c.icon} ${c.label}</option>`).join('');
     
     const uList = Object.keys(ev.roles || {}).filter(n => ev.roles[n] !== 'keine');
     document.getElementById("ed-assignee").innerHTML = '<option value="">Offen</option>' + uList.map(u => `<option value="${u}" ${t.assignee===u?'selected':''}>${u}</option>`).join('');
