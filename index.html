@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>🎪 Vereins-Manager PRO+</title>
+    <title>🎪 Vereins-Manager v4 PRO+</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -61,54 +61,59 @@
   </div>
 </main>
 
-<div id="edit-modal" class="modal-overlay">
+<div id="edit-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:3000; align-items:center; justify-content:center; padding:20px">
   <div class="modal-box">
     <h3>Aufgabe bearbeiten</h3>
     <input type="text" id="ed-title" class="form-input" placeholder="Titel">
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
-      <div><label>Kategorie</label><select id="ed-cat" class="form-input"></select></div>
-      <div><label>Deadline (Wo. vorher)</label><input type="number" id="ed-weeks" class="form-input"></div>
+      <div><label style="font-size:11px">Kategorie</label><select id="ed-cat" class="form-input"></select></div>
+      <div><label style="font-size:11px">Zuständig</label><select id="ed-assignee" class="form-input"></select></div>
     </div>
-    <div id="ed-cost-field"><label>Geplante Kosten (€)</label><input type="number" id="ed-cost" class="form-input"></div>
-    <label>Verantwortlich</label><select id="ed-assignee" class="form-input"></select>
-    <label>Abhängig von</label><select id="ed-pretask" class="form-input"></select>
-    <label>Notizen</label><textarea id="ed-notes" class="form-input" rows="3"></textarea>
-    <div style="display:flex; gap:10px; margin-top:15px">
-      <button class="btn btn-primary" style="flex:2" onclick="saveEdit()">Speichern</button>
-      <button class="btn btn-ghost" style="flex:1" onclick="closeModals()">Abbruch</button>
-      <button class="btn btn-ghost" style="color:var(--danger)" onclick="deleteTask()">🗑️</button>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
+      <div><label style="font-size:11px">Wochen vorher</label><input type="number" id="ed-weeks" class="form-input"></div>
+      <div id="ed-cost-field"><label style="font-size:11px">Ist-Kosten €</label><input type="number" id="ed-cost" class="form-input"></div>
+    </div>
+    <div>
+      <label style="font-size:11px">Wartet auf Erledigung von:</label>
+      <select id="ed-pretask" class="form-input"></select>
+    </div>
+    <textarea id="ed-notes" class="form-input" placeholder="Notizen..." style="height:80px"></textarea>
+    <div style="display:flex; gap:10px">
+      <button class="btn btn-danger" id="del-task-btn" onclick="deleteTask()">🗑️</button>
+      <button class="btn btn-ghost" style="flex:1" onclick="closeModals()">Abbr.</button>
+      <button class="btn btn-primary" style="flex:1" onclick="saveEdit()">Speichern</button>
     </div>
   </div>
 </div>
 
-<div id="event-edit-modal" class="modal-overlay">
+<div id="event-edit-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:3000; align-items:center; justify-content:center; padding:20px">
   <div class="modal-box">
     <h3>Fest-Einstellungen</h3>
-    <label>Name</label><input type="text" id="ev-edit-name" class="form-input">
-    <label>Datum</label><input type="date" id="ev-edit-date" class="form-input">
-    <label style="margin-top:15px; display:block">Berechtigungen</label>
-    <div id="event-roles-list" style="max-height:200px; overflow-y:auto; margin-bottom:15px"></div>
-    <button class="btn btn-primary" style="width:100%; margin-bottom:10px" onclick="saveEventEdit()">Speichern</button>
-    <button class="btn btn-ghost" style="width:100%; margin-bottom:10px" onclick="closeModals()">Schließen</button>
-    <button class="btn btn-ghost" style="width:100%; color:var(--danger)" onclick="deleteEvent()">⚠️ Fest komplett löschen</button>
+    <input type="text" id="ev-edit-name" class="form-input">
+    <input type="date" id="ev-edit-date" class="form-input">
+    <h4 style="margin: 10px 0; color: var(--accent); font-size: 14px;">👥 Rollen</h4>
+    <div id="event-roles-list" style="margin-bottom: 15px; max-height: 200px; overflow-y: auto;"></div>
+    <div style="display:flex; gap:10px">
+      <button class="btn btn-danger" onclick="deleteEvent()">🗑️</button>
+      <button class="btn btn-ghost" style="flex:1" onclick="closeModals()">Abbr.</button>
+      <button class="btn btn-primary" style="flex:1" onclick="saveEventEdit()">Speichern</button>
+    </div>
   </div>
 </div>
 
-<div id="user-mgmt-modal" class="modal-overlay">
+<div id="user-mgmt-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:3500; align-items:center; justify-content:center; padding:20px">
   <div class="modal-box">
-    <h3>Benutzerverwaltung</h3>
-    <div id="user-list-admin" style="margin-bottom:20px"></div>
-    <h4>Neuer Benutzer</h4>
+    <h3>👥 Benutzerverwaltung</h3>
+    <div id="user-list-admin" style="margin-bottom:15px; max-height: 200px; overflow-y: auto;"></div>
     <input type="text" id="new-u-name" class="form-input" placeholder="Name">
     <input type="text" id="new-u-pass" class="form-input" placeholder="Passwort">
-    <button class="btn btn-primary" style="width:100%" onclick="createNewUser()">Hinzufügen</button>
-    <button class="btn btn-ghost" style="width:100%; margin-top:10px" onclick="closeModals()">Schließen</button>
+    <button class="btn btn-primary" style="width:100%" onclick="createNewUser()">Anlegen</button>
+    <button class="btn btn-ghost" style="width:100%; margin-top:10px" onclick="closeModals()">X</button>
   </div>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 <script src="script.js"></script>
-
 </body>
 </html>
