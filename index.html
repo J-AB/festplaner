@@ -153,13 +153,13 @@
   const db = firebase.database();
 
   const CATEGORIES = {
-    location: { label: "Location", color: "#c8a45a", icon: "⛺" },
-    amt: { label: "Amt", color: "#7ab8d4", icon: "🏛️" },
-    programm: { label: "Programm", color: "#9b7ec8", icon: "🎵" },
-    werbung: { label: "Werbung", color: "#6bbf8e", icon: "📰" },
-    bestellungen: { label: "Bestellungen", color: "#e07b5a", icon: "🍺" },
-    finanzen: { label: "Finanzen", color: "#d4a847", icon: "💰" },
-    sonstiges: { label: "Sonstiges", color: "#888888", icon: "⚙️" }
+    location: { label: "Location", color: "#c8a45a", icon: "⛺", order: 1 },
+    amt: { label: "Amt", color: "#7ab8d4", icon: "🏛️", order: 2 },
+    programm: { label: "Programm", color: "#9b7ec8", icon: "🎵", order: 3 },
+    werbung: { label: "Werbung", color: "#6bbf8e", icon: "📰", order: 4 },
+    bestellungen: { label: "Bestellungen", color: "#e07b5a", icon: "🍺", order: 5 },
+    finanzen: { label: "Finanzen", color: "#d4a847", icon: "💰", order: 6 },
+    sonstiges: { label: "Sonstiges", color: "#888888", icon: "⚙️", order: 7 }
   };
 
   let state = { events: {}, users: {}, currentUser: null, currentEventId: 'home' };
@@ -182,7 +182,7 @@
         document.getElementById("login-screen").style.display = "none";
         if(state.currentUser.isAdmin) document.getElementById("admin-tools").style.display = "block";
         render();
-    } else alert("Login-Daten falsch.");
+    } else alert("Login fehlgeschlagen.");
   }
 
   function getMyRole(evId) {
@@ -219,7 +219,7 @@
                 my.forEach(t => html += renderTaskCard(t, evId, ev.date));
             }
         });
-        taskList.innerHTML = html || "<p style='text-align:center; opacity:0.5; margin-top:40px;'>Aktuell keine Aufgaben.</p>";
+        taskList.innerHTML = html || "<p style='text-align:center; opacity:0.5; margin-top:40px;'>Alles erledigt!</p>";
     } else {
         const ev = state.events[state.currentEventId];
         const role = getMyRole(state.currentEventId);
@@ -229,16 +229,26 @@
         document.getElementById("add-btn").style.display = (role !== 'keine') ? "block" : "none";
         document.getElementById("stat-budget-card").style.display = (role === 'planer') ? "block" : "none";
 
-        let tasks = (ev.tasks || []);
+        let tasks = [...(ev.tasks || [])];
+        
+        // Sortierung: 1. Kategorie (nach Order), 2. Person (Alphabetisch)
+        tasks.sort((a, b) => {
+            const orderA = CATEGORIES[a.category]?.order || 99;
+            const orderB = CATEGORIES[b.category]?.order || 99;
+            if(orderA !== orderB) return orderA - orderB;
+            return (a.assignee || "").localeCompare(b.assignee || "");
+        });
+
         if(role !== 'planer') {
             tasks = tasks.filter(t => t.category !== 'finanzen');
             if(role === 'helfer') tasks = tasks.filter(t => t.assignee === state.currentUser.name);
         }
-        taskList.innerHTML = tasks.length ? tasks.map(t => renderTaskCard(t, state.currentEventId, ev.date)).join('') : "Keine Aufgaben vorhanden.";
+        
+        taskList.innerHTML = tasks.length ? tasks.map(t => renderTaskCard(t, state.currentEventId, ev.date)).join('') : "Keine Aufgaben.";
         
         const diff = new Date(ev.date) - new Date();
         const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-        document.getElementById("stat-days").textContent = days > 0 ? days : "Heute/Vorbei";
+        document.getElementById("stat-days").textContent = days > 0 ? days : "Vorbei";
         document.getElementById("stat-progress").textContent = `${ev.tasks?.filter(t=>t.done).length || 0}/${ev.tasks?.length || 0}`;
         document.getElementById("stat-budget").textContent = `${(ev.tasks || []).reduce((s,t) => s + (Number(t.cost)||0), 0)} €`;
     }
@@ -268,7 +278,7 @@
             <span>${t.title}</span>
             ${(showCost && t.cost) ? `<span style="color:var(--safe); font-size:12px;">${t.cost}€</span>` : ''}
           </div>
-          <div style="font-size:10px; color:#707090; margin-top:4px;">${t.assignee || 'Offen'}</div>
+          <div style="font-size:10px; color:#707090; margin-top:4px;">${t.assignee || 'Offen'} (${cat.label})</div>
         </div>
       </div>`;
   }
@@ -280,15 +290,15 @@
     let activeH = "", poolH = "";
     Object.values(state.users || {}).forEach(u => {
         const r = ev.roles?.[u.name] || 'keine';
-        const row = `<div class="role-row"><span style="font-size:13px">${u.name}</span><div class="role-btns">
+        const row = `<div class="role-row"><span>${u.name}</span><div class="role-btns">
             <button class="role-btn ${r==='keine'?'active':''}" onclick="setRole('${u.name}','keine')">Aus</button>
             <button class="role-btn ${r==='helfer'?'active':''}" onclick="setRole('${u.name}','helfer')">Helfer</button>
             <button class="role-btn ${r==='helferVIP'?'active':''}" onclick="setRole('${u.name}','VIP')">VIP</button>
         </div></div>`;
         if(r === 'keine') poolH += row; else activeH += row;
     });
-    document.getElementById("active-roles-list").innerHTML = activeH || "<p style='font-size:10px; opacity:0.5'>Keine Helfer aktiv.</p>";
-    document.getElementById("pool-roles-list").innerHTML = poolH || "<p style='font-size:10px; opacity:0.5'>Keine weiteren Personen im Pool.</p>";
+    document.getElementById("active-roles-list").innerHTML = activeH;
+    document.getElementById("pool-roles-list").innerHTML = poolH;
     document.getElementById("event-edit-modal").style.display = "flex";
   }
 
@@ -305,7 +315,7 @@
     document.getElementById("ed-cost").value = t.cost || 0;
     document.getElementById("ed-weeks").value = t.weeks || 0;
     document.getElementById("ed-notes").value = t.notes || "";
-    document.getElementById("ed-cat").innerHTML = Object.entries(CATEGORIES).filter(([k]) => role === 'planer' || k !== 'finanzen').map(([k,c]) => `<option value="${k}" ${t.category===k?'selected':''}>${c.icon} ${c.label}</option>`).join('');
+    document.getElementById("ed-cat").innerHTML = Object.entries(CATEGORIES).sort((a,b)=>a[1].order-b[1].order).map(([k,c]) => `<option value="${k}" ${t.category===k?'selected':''}>${c.icon} ${c.label}</option>`).join('');
     const roles = state.events[evId].roles || {};
     const uList = Object.keys(roles).filter(n => roles[n] !== 'keine');
     document.getElementById("ed-assignee").innerHTML = '<option value="">Offen</option>' + uList.map(u => `<option value="${u}" ${t.assignee===u?'selected':''}>${u}</option>`).join('');
@@ -346,7 +356,7 @@
     const p = document.getElementById("new-u-pass").value.trim();
     if(n && p) { db.ref('festplaner_v4/users/'+n).set({name:n, pass:p}); document.getElementById("new-u-name").value=""; document.getElementById("new-u-pass").value=""; }
   }
-  function openEventModal() { const n = prompt("Name des Festes?"); if(n) db.ref('festplaner_v4/events/ev_'+Date.now()).set({name:n, tasks: [], roles: {}}); }
+  function openEventModal() { const n = prompt("Name?"); if(n) db.ref('festplaner_v4/events/ev_'+Date.now()).set({name:n, tasks: [], roles: {}}); }
   function saveEventEdit() { db.ref(`festplaner_v4/events/${state.currentEventId}`).update({name: document.getElementById("ev-edit-name").value, date: document.getElementById("ev-edit-date").value}); closeModals(); }
   function addTask() {
     const tasks = state.events[state.currentEventId].tasks || [];
@@ -356,7 +366,7 @@
     openEdit(state.currentEventId, id);
   }
   function deleteTask() { if(confirm("Löschen?")) { const tasks = state.events[activeTaskEventId].tasks.filter(x => x.id !== activeTaskId); db.ref(`festplaner_v4/events/${activeTaskEventId}/tasks`).set(tasks); closeModals(); } }
-  function deleteEvent() { if(confirm("Das gesamte Fest löschen?")) { db.ref(`festplaner_v4/events/${state.currentEventId}`).remove(); selectEvent('home'); closeModals(); } }
+  function deleteEvent() { if(confirm("Fest löschen?")) { db.ref(`festplaner_v4/events/${state.currentEventId}`).remove(); selectEvent('home'); closeModals(); } }
 </script>
 </body>
 </html>
