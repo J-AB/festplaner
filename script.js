@@ -74,6 +74,7 @@ function render() {
     if(!state.currentUser) return;
     const sortedEvents = Object.entries(state.events).sort((a,b) => new Date(a[1].date||0) - new Date(b[1].date||0));
     
+    // Sidebar Event-Liste rendern
     document.getElementById("event-list-ui").innerHTML = sortedEvents.map(([id, ev]) => {
         const role = getMyRole(id);
         const myTasks = (ev.tasks || []).filter(t => t.assignee === state.currentUser.name && !t.done);
@@ -89,6 +90,7 @@ function render() {
     const statsArea = document.getElementById("stats-ui");
 
     if(state.currentEventId === 'home') {
+        // --- ÜBERSICHT: MEINE AUFGABEN ---
         document.getElementById("current-event-name").textContent = "Meine Aufgaben";
         filterArea.style.display = "none"; statsArea.style.display = "none";
         document.getElementById("admin-ev-edit").style.display = "none";
@@ -97,7 +99,9 @@ function render() {
         sortedEvents.forEach(([evId, ev]) => {
             const role = getMyRole(evId);
             let my = (ev.tasks || []).filter(t => t.assignee === state.currentUser.name && !t.done);
+            // Finanzen für Helfer in der Übersicht ausblenden
             if(role !== 'planer') my = my.filter(t => t.category !== 'finanzen');
+            
             if(my.length > 0) {
                 html += `<div style="color:var(--accent); margin:15px 0 5px; font-size:11px; border-bottom:1px solid #222; padding-bottom:3px;">${ev.name}</div>`;
                 my.sort((a,b) => getDaysUntilDeadline(ev.date, a) - getDaysUntilDeadline(ev.date, b)).forEach(t => html += renderTaskCard(t, evId, ev.date));
@@ -105,14 +109,18 @@ function render() {
         });
         taskList.innerHTML = html || "<p style='text-align:center; opacity:0.5; margin-top:40px;'>Alles erledigt! 😎</p>";
     } else {
+        // --- EINZEL-EVENT ANSICHT ---
         const ev = state.events[state.currentEventId];
         const role = getMyRole(state.currentEventId);
         document.getElementById("current-event-name").textContent = ev.name;
         filterArea.style.display = "block"; statsArea.style.display = "grid";
+        
+        // Admin-Knöpfe und Budget-Statistik nur für Planer
         document.getElementById("admin-ev-edit").style.display = (role === 'planer') ? "block" : "none";
         document.getElementById("add-btn").style.display = (role !== 'keine') ? "block" : "none";
         document.getElementById("stat-budget-card").style.display = (role === 'planer') ? "block" : "none";
 
+        // Kategorien-Filter rendern
         let catHtml = `<div class="icon-filter ${state.catFilter==='all'?'active':''}" onclick="state.catFilter='all';render()">🌍</div>`;
         Object.entries(CATEGORIES).forEach(([k, c]) => {
             if(k === 'finanzen' && role !== 'planer') return;
@@ -120,6 +128,7 @@ function render() {
         });
         document.getElementById("cat-filters").innerHTML = catHtml;
 
+        // User-Filter rendern
         const allTasks = ev.tasks || [];
         const activeUsers = [...new Set(allTasks.map(t => t.assignee).filter(Boolean))];
         let userHtml = `<div class="user-filter ${state.userFilter==='all'?'active':''}" onclick="state.userFilter='all';render()">Alle</div>`;
@@ -127,23 +136,41 @@ function render() {
         activeUsers.forEach(u => { if(u !== state.currentUser.name) userHtml += `<div class="user-filter ${state.userFilter===u?'active':''}" onclick="state.userFilter='${u}';render()">${u}</div>`; });
         document.getElementById("user-filters").innerHTML = userHtml;
 
+        // Aufgaben verarbeiten (Lock-Status prüfen)
         let tasks = allTasks.map(t => {
-            if (t.preTask) { const pre = allTasks.find(p => p.id == t.preTask); t.isLocked = (pre && !pre.done); } else t.isLocked = false;
+            if (t.preTask) { 
+                const pre = allTasks.find(p => p.id == t.preTask); 
+                t.isLocked = (pre && !pre.done); 
+            } else t.isLocked = false;
             return t;
         });
 
+        // --- FILTER-LOGIK ---
         if(role !== 'planer') {
+            // 1. Finanzen komplett raus
             tasks = tasks.filter(t => t.category !== 'finanzen');
-            if(role === 'helfer') tasks = tasks.filter(t => t.assignee === state.currentUser.name);
-            tasks = tasks.filter(t => !t.isLocked || t.assignee === state.currentUser.name);
+            
+            if(role === 'helfer') {
+                // 2. Normaler Helfer sieht NUR seine eigenen Sachen
+                tasks = tasks.filter(t => t.assignee === state.currentUser.name);
+            } else if(role === 'helferVIP') {
+                // 3. HelferVIP sieht alles, außer gesperrte fremde Aufgaben
+                tasks = tasks.filter(t => !t.isLocked || t.assignee === state.currentUser.name);
+            }
         }
 
+        // Dropdown-Filter (Kategorie & User) anwenden
         if(state.catFilter !== 'all') tasks = tasks.filter(t => t.category === state.catFilter);
         if(state.userFilter === 'me') tasks = tasks.filter(t => t.assignee === state.currentUser.name);
         else if(state.userFilter !== 'all') tasks = tasks.filter(t => t.assignee === state.userFilter);
 
-        tasks.sort((a, b) => { if (a.done !== b.done) return a.done - b.done; return getDaysUntilDeadline(ev.date, a) - getDaysUntilDeadline(ev.date, b); });
+        // Sortierung: Erst Offene (nach Deadline), dann Erledigte
+        tasks.sort((a, b) => { 
+            if (a.done !== b.done) return a.done - b.done; 
+            return getDaysUntilDeadline(ev.date, a) - getDaysUntilDeadline(ev.date, b); 
+        });
         
+        // Statistiken aktualisieren
         document.getElementById("stat-progress").textContent = `${allTasks.filter(t => t.done).length} / ${allTasks.length}`;
         document.getElementById("stat-budget").textContent = `${allTasks.reduce((sum, t) => sum + (parseFloat(t.cost) || 0), 0).toFixed(0)} €`;
         const dL = ev.date ? Math.ceil((new Date(ev.date) - new Date()) / 86400000) : '-';
